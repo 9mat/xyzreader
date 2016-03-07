@@ -17,12 +17,12 @@
 
 <resources>
     <color name="photo_placeholder">#ccc</color>
-
-    <color name="theme_primary">#009688</color>
-    <color name="theme_primary_dark">#00796B</color>
-    <color name="theme_accent">#FF5252</color>
-    <color name="theme_primary_text">#212121</color>
-    <color name="theme_secondary_text">#727272</color>
-    <color name="theme_divider">#B6B6B6</color>
+    <color name="teal">#009688</color>
+    <color name="dark_teal">#00796B</color>
+    <color name="red">#FF5252</color>
+    <color name="black">#212121</color>
+    <color name="grey">#727272</color>
+    <color name="light_grey">#B6B6B6</color>
+    <color name="white">#FFFFFF</color>
     <color name="ltgray">#ffe0e0e0</color>
 </resources>
