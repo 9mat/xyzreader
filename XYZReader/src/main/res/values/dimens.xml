@@ -11,5 +11,6 @@
     <dimen name="detail_backdrop_height">256dp</dimen>
     <dimen name="collapsed_toolbar_height">56dp</dimen>
     <dimen name="image_final_width">32dp</dimen>
-
+    <dimen name="action_bar_height">72dp</dimen>
+    <dimen name="status_bar_height">24dp</dimen>
 </resources>

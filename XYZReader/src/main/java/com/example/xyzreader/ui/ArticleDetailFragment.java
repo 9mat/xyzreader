@@ -39,6 +39,9 @@ import com.example.xyzreader.data.ArticleLoader;
 
 import org.w3c.dom.Text;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * A fragment representing a single Article detail screen. This fragment is
  * either contained in a {@link ArticleListActivity} in two-pane mode (on
@@ -57,6 +60,8 @@ public class ArticleDetailFragment extends Fragment implements
     private long mItemId;
     private View mRootView;
     private int mMutedColor = 0xFF333333;
+    private static Map<Long, Integer> color = new HashMap<>();
+
     private ColorDrawable mStatusBarColorDrawable;
 
     private ImageView mPhotoView;
@@ -137,12 +142,16 @@ public class ArticleDetailFragment extends Fragment implements
 
         bindViews();
 
+        setColor();
+
         ((AppBarLayout) mRootView.findViewById(R.id.scrollview)).addOnOffsetChangedListener(this);
         startAlphaAnimation(mTitle, 0, View.INVISIBLE);
 
         //updateStatusBar();
         return mRootView;
     }
+
+
 
     /*
     private void updateStatusBar() {
@@ -213,17 +222,12 @@ public class ArticleDetailFragment extends Fragment implements
                             if (bitmap != null) {
                                 Palette p = Palette.generate(bitmap, 12);
                                 mMutedColor = p.getDarkMutedColor(0xFF333333);
+                                color.put(mItemId, mMutedColor);
                                 mPhotoView.setImageBitmap(imageContainer.getBitmap());
-                                GradientDrawable gd = (GradientDrawable) mRootView.findViewById(R.id.action_bar_gradient_background).getBackground();
-                                int[] colors = {mMutedColor, 0x00000000};
-                                gd.setColors(colors);
-                                collapsingToolbarLayout.setContentScrimColor(mMutedColor);
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                                    Window window = getActivity().getWindow();
-                                    window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-                                    window.setStatusBarColor(mMutedColor);
-                                }
-
+                                Log.i("color", String.valueOf(mItemId));
+                                Log.i("color", title);
+                                Log.i("color", "change color to " + String.valueOf(mMutedColor));
+                                setColor();
 //                                updateStatusBar();
                             }
                         }
@@ -239,6 +243,30 @@ public class ArticleDetailFragment extends Fragment implements
             bylineView.setText("N/A" );
             bodyView.setText("N/A");
         }
+    }
+
+    private void setColor(){
+        long id = getActivityCast().getSelectedItemId();
+        int c = 0xFF333333;
+        int c2 = 0xFF333333;
+        if(color.containsKey(id)) c = color.get(id);
+        if(color.containsKey(mItemId)) c2 = color.get(mItemId);
+
+        Log.i("color function: id ", String.valueOf(id));
+        Log.i("color function: c ", String.valueOf(c));
+        Log.i("color function: color ", String.valueOf(color));
+
+        View gd = mRootView.findViewById(R.id.action_bar_gradient_background);
+//        CollapsingToolbarLayout ctl = (CollapsingToolbarLayout) mRootView.findViewById(R.id.collapsing_toolbar);
+        ((GradientDrawable) gd.getBackground()).setColors(new int[]{c2, 0x00000000});
+//        ctl.setContentScrimColor(c2);
+
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+//            Window window = getActivity().getWindow();
+//            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+//            window.setStatusBarColor(c);
+//        }
+
     }
 
     @Override
