@@ -48,23 +48,19 @@
 
                 <TextView
                     android:id="@+id/article_title"
-                    style="?android:attr/textAppearanceLarge"
+                    style="@style/TitleText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:paddingBottom="@dimen/detail_metabar_title_bottom_padding"
-                    android:fontFamily="sans-serif-condensed"
-                    android:textColor="@color/white"
-                    android:textStyle="bold"
-                    android:textSize="@dimen/detail_title_text_size"
                     android:lineSpacingMultiplier="0.9" />
 
                 <TextView
                     android:id="@+id/article_byline"
-                    style="?android:attr/textAppearanceSmall"
-                    android:paddingBottom="@dimen/detail_metabar_vert_padding"
+                    style="@style/AuthorDateText"
+                    android:paddingBottom="@dimen/detail_metabar_title_bottom_padding"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:textColor="#8fff" />
+                    android:layout_height="wrap_content" />
+
             </LinearLayout>
 
             <android.support.v7.widget.Toolbar
@@ -89,13 +85,12 @@
                         android:layout_height="@dimen/status_bar_height" />
 
                     <TextView
-                        android:id="@+id/main_textview_title"
+                        android:id="@+id/collapsed_title"
+                        style="@style/CollapsedTitleText"
                         android:layout_width="match_parent"
-                        android:layout_height="48dp"
+                        android:layout_height="@dimen/toolbar_net_height"
                         android:layout_marginBottom="6dp"
-                        android:gravity="center_vertical"
-                        android:textColor="@color/primary_text_default_material_dark"
-                        android:textSize="16sp"/>
+                        android:gravity="center_vertical" />
 
                 </LinearLayout>
 
@@ -115,14 +110,12 @@
 
             <TextView
                 android:id="@+id/article_body"
-                style="?android:attr/textAppearanceSmall"
+                style="@style/BodyText"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginLeft="@dimen/detail_inner_horiz_margin"
                 android:layout_marginRight="@dimen/detail_inner_horiz_margin"
                 android:paddingBottom="@dimen/detail_body_bottom_margin"
-                android:textColorLink="@color/red"
-                android:textSize="@dimen/detail_body_text_size"
                 android:lineSpacingMultiplier="@fraction/detail_body_line_spacing_multiplier" />
 
         </FrameLayout>
@@ -135,10 +128,9 @@
         android:stateListAnimator="@anim/fab_state_list_anim"
         android:background="@drawable/add_fab_background"
         android:layout_gravity="bottom|end"
-        android:layout_marginRight="@dimen/fab_margin"
         android:layout_marginBottom="@dimen/fab_margin"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
+        android:layout_width="@dimen/fab_size"
+        android:layout_height="@dimen/fab_size"
         app:elevation="@dimen/fab_elevation"
         android:src="@drawable/ic_share"
         android:contentDescription="@string/action_share" />

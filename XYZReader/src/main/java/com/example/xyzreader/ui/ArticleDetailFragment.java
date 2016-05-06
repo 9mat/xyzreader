@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
@@ -65,7 +64,7 @@ public class ArticleDetailFragment extends Fragment implements
         public ViewHolder(View root) {
             photo = (ImageView) root.findViewById(R.id.photo);
             titleContainer = (LinearLayout) root.findViewById(R.id.meta_bar);
-            collapsedTitle = (TextView) root.findViewById(R.id.main_textview_title);
+            collapsedTitle = (TextView) root.findViewById(R.id.collapsed_title);
             gradientBackground = (GradientDrawable) root.findViewById(R.id.gradient_background).getBackground();
             title = (TextView) root.findViewById(R.id.article_title);
             authorDate = (TextView) root.findViewById(R.id.article_byline);
