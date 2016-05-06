@@ -5,6 +5,7 @@ import android.app.FragmentManager;
 import android.app.LoaderManager;
 import android.content.Loader;
 import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Build;
@@ -13,6 +14,7 @@ import android.support.v13.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.graphics.Palette;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
@@ -22,6 +24,9 @@ import android.view.WindowInsets;
 import com.example.xyzreader.R;
 import com.example.xyzreader.data.ArticleLoader;
 import com.example.xyzreader.data.ItemsContract;
+
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * An activity representing a single Article detail screen, letting you swipe between articles.
@@ -38,6 +43,8 @@ public class ArticleDetailActivity extends AppCompatActivity
 
     private ViewPager mPager;
     private MyPagerAdapter mPagerAdapter;
+
+    private static Map<Long, Integer> mStatusBarColorMap = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,6 +77,7 @@ public class ArticleDetailActivity extends AppCompatActivity
                 if (mCursor != null) {
                     mCursor.moveToPosition(position);
                     mSelectedItemId = mCursor.getLong(ArticleLoader.Query._ID);
+                    updateStatusBarColor(mSelectedItemId);
                 }
             }
         });
@@ -80,6 +88,10 @@ public class ArticleDetailActivity extends AppCompatActivity
                 mSelectedItemId = mStartId;
             }
         }
+    }
+
+    public long getSelectedItemId() {
+        return mSelectedItemId;
     }
 
     @Override
@@ -112,6 +124,15 @@ public class ArticleDetailActivity extends AppCompatActivity
     public void onLoaderReset(Loader<Cursor> cursorLoader) {
         mCursor = null;
         mPagerAdapter.notifyDataSetChanged();
+    }
+
+    public static void updateStatusBarColorMap(long id, int color) {
+        if(!mStatusBarColorMap.containsKey(id)) mStatusBarColorMap.put(id, color);
+    }
+
+    public void updateStatusBarColor(long id) {
+        if (id == mSelectedItemId & mStatusBarColorMap.containsKey(id))
+            getWindow().setStatusBarColor(mStatusBarColorMap.get(id));
     }
 
 

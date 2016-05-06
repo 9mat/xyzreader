@@ -28,4 +28,5 @@
     <color name="dark_blue_grey">#455A64</color>
     <color name="blue_grey">#607D8B</color>
     <color name="light_blue_grey">#CFD8DC</color>
+    <color name="dark_grey">#CC000000</color>
 </resources>

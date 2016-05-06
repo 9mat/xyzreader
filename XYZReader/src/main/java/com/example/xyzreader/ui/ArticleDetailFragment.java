@@ -2,6 +2,7 @@ package com.example.xyzreader.ui;
 
 import android.app.Fragment;
 import android.app.LoaderManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
@@ -30,6 +31,9 @@ import com.android.volley.toolbox.ImageLoader;
 import com.example.xyzreader.R;
 import com.example.xyzreader.data.ArticleLoader;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * A fragment representing a single Article detail screen. This fragment is
  * either contained in a {@link ArticleListActivity} in two-pane mode (on
@@ -54,6 +58,8 @@ public class ArticleDetailFragment extends Fragment implements
 
     private boolean mIsTheTitleVisible          = false;
     private boolean mIsTheTitleContainerVisible = true;
+
+    private static Map<Long, Integer> mColorMap = new HashMap<>();
 
     private class ViewHolder {
         public TextView title, collapsedTitle, authorDate, body;
@@ -99,7 +105,8 @@ public class ArticleDetailFragment extends Fragment implements
             mItemId = getArguments().getLong(ARG_ITEM_ID);
         }
 
-//        setHasOptionsMenu(true);
+        if(mColorMap.containsKey(mItemId)) mMutedColor = mColorMap.get(mItemId);
+        updateStatusBarColor();
     }
 
     @Override
@@ -111,6 +118,12 @@ public class ArticleDetailFragment extends Fragment implements
         // fragments because their mIndex is -1 (haven't been added to the activity yet). Thus,
         // we do this in onActivityCreated.
         getLoaderManager().initLoader(0, null, this);
+    }
+
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        updateStatusBarColor();
     }
 
     @Override
@@ -173,13 +186,17 @@ public class ArticleDetailFragment extends Fragment implements
                         public void onResponse(ImageLoader.ImageContainer imageContainer, boolean b) {
                             Bitmap bitmap = imageContainer.getBitmap();
                             if (bitmap != null) {
-                                Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
-                                    @Override
-                                    public void onGenerated(Palette palette) {
-                                        mMutedColor = palette.getDarkMutedColor(0xFF333333);
-                                        mHolder.gradientBackground.setColors(new int[]{mMutedColor, 0x00000000});
-                                    }
-                                });
+                                if(!mColorMap.containsKey(mItemId))
+                                    Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
+                                        @Override
+                                        public void onGenerated(Palette palette) {
+                                            mMutedColor = palette.getDarkMutedColor(0xFF333333);
+                                            mHolder.gradientBackground.setColors(new int[]{mMutedColor, 0x00000000});
+                                            mColorMap.put(mItemId, mMutedColor);
+                                            ArticleDetailActivity.updateStatusBarColorMap(mItemId, mMutedColor);
+                                            updateStatusBarColor();
+                                        }
+                                    });
                                 mHolder.photo.setImageBitmap(bitmap);
                             }
                         }
@@ -194,6 +211,15 @@ public class ArticleDetailFragment extends Fragment implements
             mHolder.authorDate.setText("N/A");
             mHolder.body.setText("N/A");
         }
+    }
+
+    private ArticleDetailActivity getActivityCast(){
+        return (ArticleDetailActivity) getActivity();
+    }
+
+    public void updateStatusBarColor(){
+        ArticleDetailActivity activity = getActivityCast();
+        if(activity != null) activity.updateStatusBarColor(mItemId);
     }
 
     @Override
