@@ -7,7 +7,7 @@
     android:layout_height="match_parent" >
 
     <android.support.design.widget.AppBarLayout
-        android:id="@+id/scrollview"
+        android:id="@+id/appbar"
         android:layout_width="match_parent"
         android:layout_height="@dimen/detail_backdrop_height">
 
@@ -29,7 +29,7 @@
                 tools:ignore="ContentDescription" />
 
             <View
-                android:id="@+id/action_bar_gradient_background"
+                android:id="@+id/gradient_background"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:background="@drawable/actionbar_gradient_dark" />
@@ -45,7 +45,6 @@
                 android:paddingLeft="@dimen/detail_inner_horiz_margin"
                 android:paddingRight="@dimen/detail_inner_horiz_margin"
                 android:paddingTop="@dimen/detail_metabar_vert_padding">
-
 
                 <TextView
                     android:id="@+id/article_title"
@@ -87,7 +86,6 @@
 
                     <Space
                         android:layout_width="match_parent"
-                        android:background="@color/black"
                         android:layout_height="@dimen/status_bar_height" />
 
                     <TextView
