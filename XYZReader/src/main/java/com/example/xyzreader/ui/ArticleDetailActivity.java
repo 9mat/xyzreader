@@ -4,14 +4,19 @@ import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.LoaderManager;
 import android.app.SharedElementCallback;
+import android.content.Context;
 import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.support.v13.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
+import android.transition.Transition;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
@@ -63,7 +68,15 @@ public class ArticleDetailActivity extends AppCompatActivity
 
     private final SharedElementCallback mCallback = new SharedElementCallback() {
         @Override
+        public void onSharedElementStart(List<String> sharedElementNames, List<View> sharedElements, List<View> sharedElementSnapshots) {
+            Log.i(SharedElementCallback.class.getSimpleName(), "onSharedElementStart");
+            mCurrentDetailsFragment.scrollToTop();
+            super.onSharedElementStart(sharedElementNames, sharedElements, sharedElementSnapshots);
+        }
+
+        @Override
         public void onMapSharedElements(List<String> names, Map<String, View> sharedElements) {
+            Log.i(SharedElementCallback.class.getSimpleName(), "onMapSharedElements");
             if (mIsReturning) {
                 ImageView sharedElement = mCurrentDetailsFragment.getPhotoView();
                 if (sharedElement == null) {
@@ -76,14 +89,50 @@ public class ArticleDetailActivity extends AppCompatActivity
                     // If the user has swiped to a different ViewPager page, then we need to
                     // remove the old shared element and replace it with the new shared element
                     // that should be transitioned instead.
+                    View[] elements = new View[] { sharedElement,
+                            mCurrentDetailsFragment.getTitleView(),
+                            mCurrentDetailsFragment.getAuthorDateView()};
                     names.clear();
-                    names.add(sharedElement.getTransitionName());
                     sharedElements.clear();
-                    sharedElements.put(sharedElement.getTransitionName(), sharedElement);
+
+                    for(View v : elements){
+                        names.add(v.getTransitionName());
+                        sharedElements.put(v.getTransitionName(), v);
+                    }
                 }
             }
+
         }
     };
+
+    @Override
+    public void onBackPressed() {
+        Log.i(ArticleListActivity.class.getSimpleName(), "onBackPressed");
+        mCurrentDetailsFragment.scrollToTop();
+        final ArticleDetailActivity activity = this;
+
+        AsyncTask<Void,Void, Void> pauseTask = new AsyncTask<Void, Void, Void>() {
+            @Override
+            protected Void doInBackground(Void... params) {
+                try {
+                    Thread.sleep(700);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                return null;
+            }
+
+            @Override
+            protected void onPostExecute(Void aVoid) {
+                activity.supportFinishAfterTransition();
+                super.onPostExecute(aVoid);
+            }
+        };
+
+        pauseTask.execute();
+
+
+    }
 
 
     @Override
@@ -97,6 +146,13 @@ public class ArticleDetailActivity extends AppCompatActivity
         postponeEnterTransition();
         setContentView(R.layout.activity_article_detail);
         setEnterSharedElementCallback(mCallback);
+        setExitSharedElementCallback(new SharedElementCallback() {
+            @Override
+            public View onCreateSnapshotView(Context context, Parcelable snapshot) {
+                mCurrentDetailsFragment.scrollToTop();
+                return super.onCreateSnapshotView(context, snapshot);
+            }
+        });
 
         mStartingPosition = getIntent().getIntExtra(EXTRA_STARTING_POSITION, 0);
         if (savedInstanceState == null) {
@@ -159,6 +215,7 @@ public class ArticleDetailActivity extends AppCompatActivity
         super.onSaveInstanceState(outState);
         outState.putInt(STATE_CURRENT_PAGE_POSITION, mCurrentPosition);
     }
+
 
     @Override
     public void finishAfterTransition() {

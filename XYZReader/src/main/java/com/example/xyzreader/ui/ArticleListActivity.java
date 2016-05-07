@@ -73,12 +73,23 @@ public class ArticleListActivity extends AppCompatActivity implements
                     // different page in the DetailsActivity. We must update the shared element
                     // so that the correct one falls into place.
                     String newTransitionName = sTransitionNameMap.get(currentPosition);
-                    View newSharedElement = mRecyclerView.findViewWithTag(newTransitionName);
-                    if (newSharedElement != null) {
+
+                    View[] elements = new View[] {
+                            mRecyclerView.findViewWithTag(newTransitionName),
+                            mRecyclerView.findViewWithTag(newTransitionName + "_title"),
+                            mRecyclerView.findViewWithTag(newTransitionName + "_author_date")
+                    } ;
+
+                    if (elements[0] != null) {
                         names.clear();
-                        names.add(newTransitionName);
                         sharedElements.clear();
-                        sharedElements.put(newTransitionName, newSharedElement);
+
+                        for(View v: elements) {
+                            if(v != null){
+                                names.add(v.getTransitionName());
+                                sharedElements.put(v.getTransitionName(), v);
+                            }
+                        }
                     }
                 }
 
@@ -290,11 +301,17 @@ public class ArticleListActivity extends AppCompatActivity implements
 
             if(POST_LOLLIPOP){
                 holder.thumbnailView.setTransitionName(transitionName);
+                holder.titleView.setTransitionName(transitionName + "_title");
+                holder.subtitleView.setTransitionName(transitionName + "_author_date");
                 holder.thumbnailView.setTag(transitionName);
+                holder.titleView.setTag(transitionName + "_title");
+                holder.subtitleView.setTag(transitionName + "_author_date");
             }
 
 //            holder.thumbnailView.setAspectRatio(mCursor.getFloat(ArticleLoader.Query.ASPECT_RATIO));
         }
+
+
 
         @Override
         public int getItemCount() {

@@ -22,12 +22,12 @@
         <item name="colorPrimaryDark">@color/dark_blue_grey</item>
         <item name="colorAccent">@color/red</item>
         <item name="android:fitsSystemWindows">true</item>
-        <item name="android:windowExitTransition">@transition/list_exit</item>
     </style>
 
-    <style name="AppTheme.Home">
-        <item name="android:windowExitTransition">@transition/list_exit</item>
+    <style name="AppTheme.Detail" parent="AppTheme">
+        <item name="android:windowEnterTransition">@android:transition/slide_right</item>
     </style>
+
 
     <style name="TitleText" parent="AppTheme">
         <item name="android:textSize">32sp</item>

@@ -1,7 +1,9 @@
 package com.example.xyzreader.ui;
 
+import android.animation.Animator;
 import android.app.Fragment;
 import android.app.LoaderManager;
+import android.app.SharedElementCallback;
 import android.content.Context;
 import android.content.Intent;
 import android.content.Loader;
@@ -15,7 +17,9 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.AppBarLayout;
+import android.support.design.widget.CoordinatorLayout;
 import android.support.v4.app.ShareCompat;
+import android.support.v4.widget.NestedScrollView;
 import android.support.v7.graphics.Palette;
 import android.text.Html;
 import android.text.format.DateUtils;
@@ -107,6 +111,14 @@ public class ArticleDetailFragment extends Fragment implements
         return null;
     }
 
+    TextView getTitleView() {
+        return  mHolder.title;
+    }
+
+    TextView getAuthorDateView() {
+        return mHolder.authorDate;
+    }
+
     private static boolean isViewInBounds(@NonNull View container, @NonNull View view) {
         Rect containerBounds = new Rect();
         container.getHitRect(containerBounds);
@@ -171,6 +183,21 @@ public class ArticleDetailFragment extends Fragment implements
 
     }
 
+    public void scrollToTop(){
+        CoordinatorLayout.LayoutParams params = (CoordinatorLayout.LayoutParams) mHolder.scrollView.getLayoutParams();
+        AppBarLayout.Behavior behavior = (AppBarLayout.Behavior) params.getBehavior();
+        CoordinatorLayout coordinator = (CoordinatorLayout) mRootView.findViewById(R.id.detail_coordinator_layout);
+        mHolder.scrollView.setExpanded(true, false);
+        if (behavior != null) {
+//            behavior.onNestedFling(coordinator, mHolder.scrollView, null, 0, -1000, true);
+//            Log.i(ArticleListActivity.class.getSimpleName(), "scrollToTop:" + params.height);
+////            behavior.onNestedFling((CoordinatorLayout) mRootView.findViewById(R.id.detail_coordinator_layout),
+////                    mHolder.scrollView, null, 0, 10000, true);
+        } else {
+//            Log.i(ArticleListActivity.class.getSimpleName(), "scrollToTop:null behavior");
+        }
+    }
+
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
@@ -197,10 +224,11 @@ public class ArticleDetailFragment extends Fragment implements
         mRootView.findViewById(R.id.share_fab).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                startActivity(Intent.createChooser(ShareCompat.IntentBuilder.from(getActivity())
-                        .setType("text/plain")
-                        .setText("Some sample text")
-                        .getIntent(), getString(R.string.action_share)));
+//                startActivity(Intent.createChooser(ShareCompat.IntentBuilder.from(getActivity())
+//                        .setType("text/plain")
+//                        .setText("Some sample text")
+//                        .getIntent(), getString(R.string.action_share)));
+                scrollToTop();
             }
         });
 
@@ -226,14 +254,13 @@ public class ArticleDetailFragment extends Fragment implements
         });
     }
 
-
     private void bindViews() {
         if (mRootView == null) {
             return;
         }
 
         mHolder.authorDate.setMovementMethod(new LinkMovementMethod());
-        mHolder.body.setTypeface(Typeface.createFromAsset(getResources().getAssets(), "Rosario-Regular.ttf"));
+        //mHolder.body.setTypeface(Typeface.createFromAsset(getResources().getAssets(), "Rosario-Regular.ttf"));
 
         if (mCursor != null) {
             mRootView.setAlpha(0);
@@ -256,15 +283,14 @@ public class ArticleDetailFragment extends Fragment implements
             mHolder.authorDate.setText(Html.fromHtml(dateStr + " by <font color='#ffffff'>" + author + "</font>"));
             mHolder.body.setText(Html.fromHtml(body));
 
-            if(ArticleListActivity.POST_LOLLIPOP)
-                mHolder.photo.setTransitionName(ArticleListActivity.generateTransitionName(
-                        mCursor.getLong(ArticleLoader.Query._ID)
-                ));
+            if(ArticleListActivity.POST_LOLLIPOP) {
+                String transitionName = ArticleListActivity.generateTransitionName(
+                        mCursor.getLong(ArticleLoader.Query._ID));
 
-
-//            if (mIsTransitioning) {
-//                albumImageRequest.noFade();
-//            }
+                mHolder.photo.setTransitionName(transitionName);
+                mHolder.title.setTransitionName(transitionName + "_title");
+                mHolder.authorDate.setTransitionName(transitionName + "_author_date");
+            }
 
             Picasso.with(getActivity())
                     .load(photoUrl)
@@ -322,8 +348,6 @@ public class ArticleDetailFragment extends Fragment implements
 
     @Override
     public void onLoadFinished(Loader<Cursor> cursorLoader, Cursor cursor) {
-//        getActivityCast().scheduleStartPostponedTransition(mHolder.photo);
-
         if (!isAdded()) {
             if (cursor != null) {
                 cursor.close();
