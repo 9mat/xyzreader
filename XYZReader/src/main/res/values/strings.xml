@@ -10,4 +10,8 @@
     <string name="up">Up</string>
     <string name="image_transition_name">image_transition</string>
 
+    <string name="author_date_str_html">%1$s by &lt;font color=\'#ffffff\'&gt; %2$s &lt;font&gt;</string>
+    <string name="author_date_str_plain">%1$s by %2$s</string>
+    <string name="no_data_string">N/A</string>
+
 </resources>

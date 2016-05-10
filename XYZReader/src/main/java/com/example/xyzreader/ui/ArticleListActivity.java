@@ -10,26 +10,27 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.Loader;
 import android.database.Cursor;
+import android.graphics.Bitmap;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.graphics.Palette;
+import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
-import android.text.format.DateUtils;
 import android.util.Log;
+import android.util.Pair;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.example.xyzreader.R;
 import com.example.xyzreader.data.ArticleLoader;
 import com.example.xyzreader.data.ItemsContract;
 import com.example.xyzreader.data.UpdaterService;
-import com.squareup.picasso.Picasso;
 
 import java.util.HashMap;
 import java.util.List;
@@ -48,8 +49,6 @@ public class ArticleListActivity extends AppCompatActivity implements
 
     static final String EXTRA_STARTING_POSITION = "extra_starting_item_position";
     static final String EXTRA_CURRENT_POSITION = "extra_current_item_position";
-
-    static final boolean POST_LOLLIPOP = Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP;
 
     private RecyclerView mRecyclerView;
     private Bundle mTmpReenterState;
@@ -76,8 +75,11 @@ public class ArticleListActivity extends AppCompatActivity implements
 
                     View[] elements = new View[] {
                             mRecyclerView.findViewWithTag(newTransitionName),
-                            mRecyclerView.findViewWithTag(newTransitionName + "_title"),
-                            mRecyclerView.findViewWithTag(newTransitionName + "_author_date")
+//                            mRecyclerView.findViewWithTag(newTransitionName + "_title"),
+//                            mRecyclerView.findViewWithTag(newTransitionName + "_author_date"),
+                            mRecyclerView.findViewWithTag(newTransitionName + "_container"),
+                            findViewById(android.R.id.statusBarBackground),
+                            findViewById(android.R.id.navigationBarBackground)
                     } ;
 
                     if (elements[0] != null) {
@@ -109,16 +111,20 @@ public class ArticleListActivity extends AppCompatActivity implements
                 }
             }
         }
+
+
     };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        Utility.sGlobalContext = this.getApplicationContext();
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            getWindow().getDecorView().setSystemUiVisibility(
-                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
-                            View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+//            getWindow().getDecorView().setSystemUiVisibility(
+//                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+//                            View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
         }
 
         setContentView(R.layout.activity_article_list);
@@ -130,7 +136,8 @@ public class ArticleListActivity extends AppCompatActivity implements
         getLoaderManager().initLoader(0, null, this);
 
 
-//        getWindow().setExitTransition(TransitionInflater.from(this).inflateTransition(R.transition.list_exit));
+//        getWindow().setExitTransition(null);
+//        getWindow().setEnterTransition(null);
 
         if (savedInstanceState == null) {
             refresh();
@@ -169,7 +176,7 @@ public class ArticleListActivity extends AppCompatActivity implements
         if (startingPosition != currentPosition) {
             mRecyclerView.scrollToPosition(currentPosition);
         }
-        if(POST_LOLLIPOP) {
+        if(Utility.POST_LOLLIPOP) {
             Log.i(ArticleListActivity.class.getSimpleName(), "onActivityReenter");
             postponeEnterTransition();
             mRecyclerView.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
@@ -177,14 +184,13 @@ public class ArticleListActivity extends AppCompatActivity implements
                 public boolean onPreDraw() {
                     mRecyclerView.getViewTreeObserver().removeOnPreDrawListener(this);
                     // TODO: figure out why it is necessary to request layout here in order to get a smooth transition.
-                    mRecyclerView.requestLayout();
+//                    mRecyclerView.requestLayout();
                     startPostponedEnterTransition();
                     return true;
                 }
             });
         }
     }
-
 
     private boolean mIsRefreshing = false;
 
@@ -213,9 +219,10 @@ public class ArticleListActivity extends AppCompatActivity implements
         adapter.setHasStableIds(true);
         mRecyclerView.setAdapter(adapter);
         int columnCount = getResources().getInteger(R.integer.list_column_count);
-        StaggeredGridLayoutManager sglm =
-                new StaggeredGridLayoutManager(columnCount, StaggeredGridLayoutManager.VERTICAL);
-        mRecyclerView.setLayoutManager(sglm);
+//        StaggeredGridLayoutManager sglm =
+//                new StaggeredGridLayoutManager(columnCount, StaggeredGridLayoutManager.VERTICAL);
+        GridLayoutManager layoutManager = new GridLayoutManager(this, columnCount);
+        mRecyclerView.setLayoutManager(layoutManager);
     }
 
     @Override
@@ -242,23 +249,24 @@ public class ArticleListActivity extends AppCompatActivity implements
         @Override
         public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
             View view = getLayoutInflater().inflate(R.layout.list_item_article, parent, false);
-            final ViewHolder vh = new ViewHolder(view);
+            final ViewHolder vh = new ViewHolder(view, mActivity);
             view.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    Bundle bundle = POST_LOLLIPOP ?
-                            ActivityOptions.makeSceneTransitionAnimation(ArticleListActivity.this,
-                                    vh.thumbnailView,
-                                    vh.thumbnailView.getTransitionName()).toBundle()
-                            : null;
+                    if (mIsDetailsActivityStarted) return;
+                    mIsDetailsActivityStarted = true;
+
+                    Bundle bundle = null;
+                    if (Utility.POST_LOLLIPOP)
+                        bundle = ActivityOptions.makeSceneTransitionAnimation(
+                                ArticleListActivity.this,
+                                vh.getShareElementPairs()).toBundle();
+
                     Intent intent = new Intent(Intent.ACTION_VIEW, ItemsContract.Items.buildItemUri(getItemId(vh.getAdapterPosition())));
                     intent.putExtra(EXTRA_STARTING_POSITION, mPosition);
-                    if (!mIsDetailsActivityStarted) {
-                        mIsDetailsActivityStarted = true;
-                        Log.i(ArticleListActivity.class.getSimpleName(), "onclick");
-                        startActivity(intent, bundle);
-                    }
+                    startActivity(intent, bundle);
                 }
+
             });
             return vh;
         }
@@ -268,47 +276,10 @@ public class ArticleListActivity extends AppCompatActivity implements
             mPosition = position;
             mCursor.moveToPosition(position);
 
-            String transitionName = generateTransitionName(mCursor.getLong(ArticleLoader.Query._ID));
-            sTransitionNameMap.put(position, transitionName);
+            Utility.ArticleInfoSimple articleInfo = new Utility.ArticleInfoSimple(mCursor);
+            holder.bindView(articleInfo);
 
-            holder.titleView.setText(mCursor.getString(ArticleLoader.Query.TITLE));
-            holder.subtitleView.setText(
-                    DateUtils.getRelativeTimeSpanString(
-                            mCursor.getLong(ArticleLoader.Query.PUBLISHED_DATE),
-                            System.currentTimeMillis(), DateUtils.HOUR_IN_MILLIS,
-                            DateUtils.FORMAT_ABBREV_ALL).toString()
-                            + " by "
-                            + mCursor.getString(ArticleLoader.Query.AUTHOR));
-
-            final float ratio = mCursor.getFloat(ArticleLoader.Query.ASPECT_RATIO);
-            holder.thumbnailView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-                @Override
-                public void onGlobalLayout() {
-                    int width = holder.thumbnailView.getWidth();
-                    int height = (int) (width / ratio);
-                    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(width, height);
-                    holder.thumbnailView.setLayoutParams(params);
-                    holder.thumbnailView.requestLayout();
-                }
-            });
-
-//            holder.thumbnailView.setImageUrl(
-//                    mCursor.getString(ArticleLoader.Query.THUMB_URL),
-//                    ImageLoaderHelper.getInstance(ArticleListActivity.this).getImageLoader());
-            Picasso.with(ArticleListActivity.this)
-                    .load(mCursor.getString(ArticleLoader.Query.THUMB_URL))
-                    .into(holder.thumbnailView);
-
-            if(POST_LOLLIPOP){
-                holder.thumbnailView.setTransitionName(transitionName);
-                holder.titleView.setTransitionName(transitionName + "_title");
-                holder.subtitleView.setTransitionName(transitionName + "_author_date");
-                holder.thumbnailView.setTag(transitionName);
-                holder.titleView.setTag(transitionName + "_title");
-                holder.subtitleView.setTag(transitionName + "_author_date");
-            }
-
-//            holder.thumbnailView.setAspectRatio(mCursor.getFloat(ArticleLoader.Query.ASPECT_RATIO));
+            sTransitionNameMap.put(position, ArticleListActivity.generateTransitionName(articleInfo.id));
         }
 
 
@@ -320,15 +291,102 @@ public class ArticleListActivity extends AppCompatActivity implements
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        public ImageView thumbnailView;
-        public TextView titleView;
-        public TextView subtitleView;
+        private DynamicHeightNetworkImageView thumbnailView;
+        private TextView titleView;
+        private TextView subtitleView;
+        private View thumbnailContainer;
+        private View mCardView;
+        private Activity mActivity;
 
-        public ViewHolder(View view) {
+        public ViewHolder(View view, Activity activity) {
             super(view);
-            thumbnailView = (ImageView) view.findViewById(R.id.thumbnail);
-            titleView = (TextView) view.findViewById(R.id.article_title);
-            subtitleView = (TextView) view.findViewById(R.id.article_subtitle);
+            thumbnailView       = (DynamicHeightNetworkImageView) view.findViewById(R.id.thumbnail);
+            titleView           = (TextView) view.findViewById(R.id.article_title);
+            subtitleView        = (TextView) view.findViewById(R.id.article_subtitle);
+            thumbnailContainer  = view.findViewById(R.id.thumbnail_container);
+            mCardView           = view.findViewById(R.id.card_view);
+            mActivity           = activity;
+        }
+
+        public void bindView(final Utility.ArticleInfoSimple articleInfo) {
+
+            String dateStr  = Utility.makeDateString(articleInfo.date);
+            titleView.setText(articleInfo.title);
+            subtitleView.setText(mActivity.getResources().getString(R.string.author_date_str_plain, dateStr, articleInfo.author));
+
+            paintTextView(articleInfo.id);
+
+            if(!Utility.hasArticleColor(articleInfo.id))
+                thumbnailView.setOnSetImageBitmapListener(new DynamicHeightNetworkImageView.OnSetImageBitmapListener() {
+                    @Override
+                    public void onSetImageBitmap(Bitmap bitmap) {
+                        if(bitmap != null)
+                            Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
+                                @Override
+                                public void onGenerated(Palette palette) {
+                                    int color = palette.getDarkMutedColor(0xFF333333);
+                                    Utility.updateArticleColorMap(articleInfo.id, color);
+                                    paintTextView(articleInfo.id);
+                                }
+                            });
+
+                    }
+                });
+            else {
+                // remove the listener to prevent RecyclerView from reusing the wrong listener
+                thumbnailView.setOnSetImageBitmapListener(null);
+                paintTextView(articleInfo.id);
+            }
+
+            thumbnailView.setImageUrl(articleInfo.photoUrl,
+                    ImageLoaderHelper.getInstance(mActivity).getImageLoader());
+
+            thumbnailView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            thumbnailView.setAspectRatio(1.5f);
+
+            if(Utility.POST_LOLLIPOP){
+                String transitionName = generateTransitionName(articleInfo.id);
+                String transitionNameContainer = transitionName + "_container";
+
+                thumbnailView.setTransitionName(transitionName);
+                thumbnailView.setTag(transitionName);
+                thumbnailContainer.setTransitionName(transitionNameContainer);
+                thumbnailContainer.setTag(transitionNameContainer);
+            }
+
+        }
+
+        public void paintTextView(long id) {
+            if(Utility.hasArticleColor(id)) {
+                int color = Utility.getArticleColor(id);
+                titleView.setBackgroundColor(color);
+                subtitleView.setBackgroundColor(color);
+                mCardView.setBackgroundColor(color);
+            }
+        }
+
+        private class PairViewString extends Pair<View, String> {
+            public PairViewString(View first, String second) {
+                super(first, second);
+            }
+        }
+
+        public PairViewString[] getShareElementPairs(){
+            View[] sharedViews = new View[] {
+                    thumbnailView,
+//                    titleView,
+//                    subtitleView,
+                    thumbnailContainer,
+                    mActivity.findViewById(android.R.id.statusBarBackground),
+                    mActivity.findViewById(android.R.id.navigationBarBackground)
+            };
+
+            PairViewString[] sharedElements = new PairViewString[sharedViews.length];
+
+            int i = 0;
+            for (View v: sharedViews) sharedElements[i++] = new PairViewString(v, v.getTransitionName());
+
+            return sharedElements;
         }
 
     }

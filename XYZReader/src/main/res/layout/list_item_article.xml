@@ -1,11 +1,13 @@
 <android.support.v7.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginLeft="4dp"
     android:layout_marginRight="4dp"
     android:layout_marginTop="4dp"
     android:layout_marginBottom="4dp"
+    android:id="@+id/card_view"
     android:clickable="true"
     android:focusable="true"
     android:foreground="?selectableItemBackground">
@@ -18,14 +20,24 @@
 
         <!--suppress AndroidLintContentDescription -->
         <!--com.android.volley.toolbox.NetworkImageView -->
-        <ImageView
-            android:id="@+id/thumbnail"
+
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:adjustViewBounds="true"
-            android:scaleType="fitXY"
-            android:transitionName="@string/image_transition_name"
-            android:background="@color/photo_placeholder" />
+            android:layout_height="wrap_content">
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="10dp"
+                android:layout_gravity="bottom"
+                android:id="@+id/thumbnail_container" />
+
+            <com.example.xyzreader.ui.DynamicHeightNetworkImageView
+                android:id="@+id/thumbnail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@color/photo_placeholder" />
+
+        </FrameLayout>
 
         <TextView
             android:id="@+id/article_title"
@@ -37,7 +49,9 @@
             android:paddingBottom="4dp"
             android:textColor="@color/white"
             style="@style/TitleText"
-            android:textSize="18sp"
+            android:textSize="14sp"
+            android:minLines="2"
+            android:lines="2"
             android:ellipsize="end"
             android:maxLines="4" />
 

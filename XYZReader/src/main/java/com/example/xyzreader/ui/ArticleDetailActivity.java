@@ -4,29 +4,27 @@ import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.LoaderManager;
 import android.app.SharedElementCallback;
-import android.content.Context;
 import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
-import android.os.Parcelable;
 import android.support.v13.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
-import android.transition.Transition;
+import android.transition.Slide;
+import android.transition.TransitionSet;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
+import android.view.animation.AlphaAnimation;
 import android.widget.ImageView;
 
 import com.example.xyzreader.R;
 import com.example.xyzreader.data.ArticleLoader;
 import com.example.xyzreader.data.ItemsContract;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -50,15 +48,10 @@ public class ArticleDetailActivity extends AppCompatActivity
     private long mStartId;
 
     private long mSelectedItemId;
-    private int mSelectedItemUpButtonFloor = Integer.MAX_VALUE;
-    private int mTopInset;
 
     private ViewPager mPager;
     private MyPagerAdapter mPagerAdapter;
 
-    private static Map<Long, Integer> mStatusBarColorMap = new HashMap<>();
-
-    private static final String STATE_CURRENT_PAGE_ITEM_ID = "state_current_page_item_id";
     private static final String STATE_CURRENT_PAGE_POSITION= "state_current_page_position";
 
     private ArticleDetailFragment mCurrentDetailsFragment;
@@ -67,13 +60,6 @@ public class ArticleDetailActivity extends AppCompatActivity
     private boolean mIsReturning;
 
     private final SharedElementCallback mCallback = new SharedElementCallback() {
-        @Override
-        public void onSharedElementStart(List<String> sharedElementNames, List<View> sharedElements, List<View> sharedElementSnapshots) {
-            Log.i(SharedElementCallback.class.getSimpleName(), "onSharedElementStart");
-            mCurrentDetailsFragment.scrollToTop();
-            super.onSharedElementStart(sharedElementNames, sharedElements, sharedElementSnapshots);
-        }
-
         @Override
         public void onMapSharedElements(List<String> names, Map<String, View> sharedElements) {
             Log.i(SharedElementCallback.class.getSimpleName(), "onMapSharedElements");
@@ -89,13 +75,10 @@ public class ArticleDetailActivity extends AppCompatActivity
                     // If the user has swiped to a different ViewPager page, then we need to
                     // remove the old shared element and replace it with the new shared element
                     // that should be transitioned instead.
-                    View[] elements = new View[] { sharedElement,
-                            mCurrentDetailsFragment.getTitleView(),
-                            mCurrentDetailsFragment.getAuthorDateView()};
                     names.clear();
                     sharedElements.clear();
 
-                    for(View v : elements){
+                    for(View v : mCurrentDetailsFragment.getSharedElements()){
                         names.add(v.getTransitionName());
                         sharedElements.put(v.getTransitionName(), v);
                     }
@@ -111,7 +94,7 @@ public class ArticleDetailActivity extends AppCompatActivity
         mCurrentDetailsFragment.scrollToTop();
         final ArticleDetailActivity activity = this;
 
-        AsyncTask<Void,Void, Void> pauseTask = new AsyncTask<Void, Void, Void>() {
+        new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... params) {
                 try {
@@ -124,35 +107,38 @@ public class ArticleDetailActivity extends AppCompatActivity
 
             @Override
             protected void onPostExecute(Void aVoid) {
-                activity.supportFinishAfterTransition();
-                super.onPostExecute(aVoid);
+                activity.finishAfterTransition();
+                //super.onPostExecute(aVoid);
             }
-        };
 
-        pauseTask.execute();
-
-
+        }.execute();
     }
 
+    @Override
+    public void onEnterAnimationComplete() {
+        AlphaAnimation alphaAnimation = new AlphaAnimation(0.0f, 1.f);
+        alphaAnimation.setDuration(700);
+        alphaAnimation.setFillAfter(true);
+        Log.i("ddd", String.valueOf(mCurrentDetailsFragment.getTitleView().getVisibility()));
+        mCurrentDetailsFragment.getTitleView().setVisibility(View.VISIBLE);
+        mCurrentDetailsFragment.getTitleView().startAnimation(alphaAnimation);
+        super.onEnterAnimationComplete();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        if (Utility.POST_LOLLIPOP) {
             getWindow().getDecorView().setSystemUiVisibility(
                     View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
                             View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+            postponeEnterTransition();
+            setContentView(R.layout.activity_article_detail);
+            setEnterSharedElementCallback(mCallback);
+
+        } else {
+            setContentView(R.layout.activity_article_detail);
         }
-        postponeEnterTransition();
-        setContentView(R.layout.activity_article_detail);
-        setEnterSharedElementCallback(mCallback);
-        setExitSharedElementCallback(new SharedElementCallback() {
-            @Override
-            public View onCreateSnapshotView(Context context, Parcelable snapshot) {
-                mCurrentDetailsFragment.scrollToTop();
-                return super.onCreateSnapshotView(context, snapshot);
-            }
-        });
 
         mStartingPosition = getIntent().getIntExtra(EXTRA_STARTING_POSITION, 0);
         if (savedInstanceState == null) {
@@ -167,22 +153,14 @@ public class ArticleDetailActivity extends AppCompatActivity
         mPager = (ViewPager) findViewById(R.id.pager);
         mPager.setAdapter(mPagerAdapter);
 
-//        mPager.setPageMargin((int) TypedValue
-//                .applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, getResources().getDisplayMetrics()));
-//        mPager.setPageMarginDrawable(new ColorDrawable(0x22000000));
-
         mPager.addOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
-            @Override
-            public void onPageScrollStateChanged(int state) {
-                super.onPageScrollStateChanged(state);
-            }
-
             @Override
             public void onPageSelected(int position) {
                 if (mCursor != null) {
                     mCursor.moveToPosition(position);
                     mSelectedItemId = mCursor.getLong(ArticleLoader.Query._ID);
-                    updateStatusBarColor(mSelectedItemId);
+                    mCurrentDetailsFragment.paintGradientBackground();
+                    updateStatusBarColor();
                 }
                 mCurrentPosition = position;
             }
@@ -194,26 +172,17 @@ public class ArticleDetailActivity extends AppCompatActivity
                 mSelectedItemId = mStartId;
             }
         }
-
+        updateStatusBarColor();
     }
-
-//    public void scheduleStartPostponedTransition(final View sharedElement) {
-//        sharedElement.getViewTreeObserver().addOnPreDrawListener(
-//                new ViewTreeObserver.OnPreDrawListener() {
-//                    @Override
-//                    public boolean onPreDraw() {
-//                        sharedElement.getViewTreeObserver().removeOnPreDrawListener(this);
-//                        startPostponedEnterTransition();
-//                        return true;
-//                    }
-//                });
-//    }
-
 
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putInt(STATE_CURRENT_PAGE_POSITION, mCurrentPosition);
+    }
+
+    public long getSelectedItemId () {
+        return mSelectedItemId;
     }
 
 
@@ -237,7 +206,6 @@ public class ArticleDetailActivity extends AppCompatActivity
         mCursor = cursor;
         mPagerAdapter.notifyDataSetChanged();
 
-
         // Select the start ID
         if (mStartId > 0) {
             mCursor.moveToFirst();
@@ -260,15 +228,12 @@ public class ArticleDetailActivity extends AppCompatActivity
         mPagerAdapter.notifyDataSetChanged();
     }
 
-    public static void updateStatusBarColorMap(long id, int color) {
-        if(!mStatusBarColorMap.containsKey(id)) mStatusBarColorMap.put(id, color);
+    public void updateStatusBarColor() {
+        if (Utility.hasArticleColor(mSelectedItemId)) {
+            getWindow().setStatusBarColor(Utility.getArticleColor(mSelectedItemId));
+            if(mCurrentDetailsFragment != null) mCurrentDetailsFragment.paintGradientBackground();
+        }
     }
-
-    public void updateStatusBarColor(long id) {
-        if (id == mSelectedItemId & mStatusBarColorMap.containsKey(id))
-            getWindow().setStatusBarColor(mStatusBarColorMap.get(id));
-    }
-
 
     private class MyPagerAdapter extends FragmentStatePagerAdapter {
         public MyPagerAdapter(FragmentManager fm) {
@@ -279,6 +244,7 @@ public class ArticleDetailActivity extends AppCompatActivity
         public void setPrimaryItem(ViewGroup container, int position, Object object) {
             super.setPrimaryItem(container, position, object);
             mCurrentDetailsFragment = (ArticleDetailFragment) object;
+            if(mCurrentDetailsFragment != null) mCurrentDetailsFragment.paintGradientBackground();
         }
 
         @Override
@@ -286,6 +252,7 @@ public class ArticleDetailActivity extends AppCompatActivity
             mCursor.moveToPosition(position);
             return ArticleDetailFragment.newInstance(mCursor.getLong(ArticleLoader.Query._ID), position, mStartingPosition);
         }
+
 
         @Override
         public int getCount() {

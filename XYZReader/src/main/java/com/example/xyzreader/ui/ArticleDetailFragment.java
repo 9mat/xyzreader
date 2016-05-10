@@ -1,28 +1,20 @@
 package com.example.xyzreader.ui;
 
-import android.animation.Animator;
 import android.app.Fragment;
 import android.app.LoaderManager;
-import android.app.SharedElementCallback;
 import android.content.Context;
-import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.graphics.Rect;
-import android.graphics.Typeface;
-import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.AppBarLayout;
-import android.support.design.widget.CoordinatorLayout;
-import android.support.v4.app.ShareCompat;
-import android.support.v4.widget.NestedScrollView;
 import android.support.v7.graphics.Palette;
 import android.text.Html;
-import android.text.format.DateUtils;
 import android.text.method.LinkMovementMethod;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -34,14 +26,10 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.android.volley.VolleyError;
+import com.android.volley.toolbox.ImageLoader;
 import com.example.xyzreader.R;
 import com.example.xyzreader.data.ArticleLoader;
-import com.squareup.picasso.Callback;
-import com.squareup.picasso.Picasso;
-import com.squareup.picasso.RequestCreator;
-
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * A fragment representing a single Article detail screen. This fragment is
@@ -59,7 +47,6 @@ public class ArticleDetailFragment extends Fragment implements
     private Cursor mCursor;
     private long mItemId;
     private View mRootView;
-    private int mMutedColor = 0xFF333333;
 
     private static final float PERCENTAGE_TO_SHOW_TITLE_AT_TOOLBAR  = 0.9f;
     private static final float PERCENTAGE_TO_HIDE_TITLE_DETAILS     = 0.5f;
@@ -68,40 +55,40 @@ public class ArticleDetailFragment extends Fragment implements
     private boolean mIsTheTitleVisible          = false;
     private boolean mIsTheTitleContainerVisible = true;
 
-    private static Map<Long, Integer> mColorMap = new HashMap<>();
-
     private static final String ARG_CURRENT_POSITION = "arg_album_image_position";
     private static final String ARG_STARTING_POSITION = "arg_starting_album_image_position";
-    private int mStartingPosition;
-    private int mCurrentPosition;
-    private boolean mIsTransitioning;
-    private int mBackgroundImageFadeMillis;
+//    private int mStartingPosition;
+//    private int mCurrentPosition;
+//    private boolean mIsTransitioning;
+//    private int mBackgroundImageFadeMillis;
 
-    private final Callback mImageCallback = new Callback() {
-        @Override
-        public void onSuccess() {
-            Bitmap bitmap = ((BitmapDrawable) mHolder.photo.getDrawable()).getBitmap();
-            if(!mColorMap.containsKey(mItemId))
-                Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
-                    @Override
-                    public void onGenerated(Palette palette) {
-                        mMutedColor = palette.getDarkMutedColor(0xFF333333);
-                        mHolder.gradientBackground.setColors(new int[]{mMutedColor, 0x00000000});
-                        mColorMap.put(mItemId, mMutedColor);
-                        ArticleDetailActivity.updateStatusBarColorMap(mItemId, mMutedColor);
-                        updateStatusBarColor();
-                    }
-                });
-            if(ArticleListActivity.POST_LOLLIPOP) startPostponedEnterTransition();
-        }
+    private boolean mIsEnterTransitionStarted = false;
+    private boolean mIsPhotoLoaded = false;
+    private boolean mIsGradientColored = false;
 
-        @Override
-        public void onError() {
-            Picasso.with(getActivity()).load(mCursor.getString(ArticleLoader.Query.THUMB_URL)).into(mHolder.photo, this);
-        }
-    };
-
-
+//    private final Callback mImageCallback = new Callback() {
+//        @Override
+//        public void onSuccess() {
+//            Bitmap bitmap = ((BitmapDrawable) mHolder.photo.getDrawable()).getBitmap();
+//            if(!mColorMap.containsKey(mItemId))
+//                Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
+//                    @Override
+//                    public void onGenerated(Palette palette) {
+//                        mMutedColor = palette.getDarkMutedColor(0xFF333333);
+//                        mHolder.gradientBackground.setColors(new int[]{mMutedColor, 0x00000000});
+//                        mColorMap.put(mItemId, mMutedColor);
+//                        ArticleDetailActivity.updateStatusBarColorMap(mItemId, mMutedColor);
+//                        updateStatusBarColor();
+//                    }
+//                });
+//            if(ArticleListActivity.POST_LOLLIPOP) startPostponedEnterTransition();
+//        }
+//
+//        @Override
+//        public void onError() {
+//            Picasso.with(getActivity()).load(mCursor.getString(ArticleLoader.Query.THUMB_URL)).into(mHolder.photo, this);
+//        }
+//    };
 
     @Nullable
     ImageView getPhotoView() {
@@ -111,12 +98,15 @@ public class ArticleDetailFragment extends Fragment implements
         return null;
     }
 
-    TextView getTitleView() {
-        return  mHolder.title;
-    }
-
-    TextView getAuthorDateView() {
-        return mHolder.authorDate;
+    View[] getSharedElements(){
+        return new View[] {
+                mHolder.photo,
+//                mHolder.title,
+//                mHolder.authorDate,
+                mHolder.gradientView,
+                getActivity().findViewById(android.R.id.statusBarBackground),
+                getActivity().findViewById(android.R.id.navigationBarBackground)
+        };
     }
 
     private static boolean isViewInBounds(@NonNull View container, @NonNull View view) {
@@ -125,24 +115,51 @@ public class ArticleDetailFragment extends Fragment implements
         return view.getLocalVisibleRect(containerBounds);
     }
 
+    public View getTitleView() {
+        return mHolder.titleContainer;
+    }
 
     private class ViewHolder {
         public TextView title, collapsedTitle, authorDate, body;
         public ImageView photo;
         public LinearLayout titleContainer;
         public GradientDrawable gradientBackground;
+        public View gradientView;
         public AppBarLayout scrollView;
 
-        public ViewHolder(View root) {
+        private long mArticleId;
+
+        public ViewHolder(View root, long id) {
             photo = (ImageView) root.findViewById(R.id.photo);
             titleContainer = (LinearLayout) root.findViewById(R.id.meta_bar);
             collapsedTitle = (TextView) root.findViewById(R.id.collapsed_title);
-            gradientBackground = (GradientDrawable) root.findViewById(R.id.gradient_background).getBackground();
+            gradientView = root.findViewById(R.id.gradient_background);
+            gradientBackground = (GradientDrawable) gradientView.getBackground();
             title = (TextView) root.findViewById(R.id.article_title);
             authorDate = (TextView) root.findViewById(R.id.article_byline);
             body = (TextView) root.findViewById(R.id.article_body);
-            scrollView = (AppBarLayout) root.findViewById(R.id.appbar);
+            scrollView = (AppBarLayout) root.findViewById(R.id.appbar_detail);
+            mArticleId = id;
+
+            paintGradientBackground();
         }
+
+        public void paintGradientBackground(){
+            Log.i(ArticleDetailFragment.class.getSimpleName(), "paintGradientBackground: start " + String.valueOf(mArticleId));
+            if(Utility.hasArticleColor(mArticleId)) {
+                Log.i(ArticleDetailFragment.class.getSimpleName(), "paintGradientBackground: color " + Integer.toHexString(Utility.getArticleColor(mArticleId)));
+
+                gradientBackground.setColors(new int[]{
+                                Utility.getArticleColor(mArticleId),
+                                Color.TRANSPARENT}
+                );
+            }
+            else Log.i(ArticleDetailFragment.class.getSimpleName(), "paintGradientBackground: no color");
+        }
+    }
+
+    public void paintGradientBackground() {
+        if(mHolder != null) mHolder.paintGradientBackground();
     }
 
     private ViewHolder mHolder;
@@ -168,34 +185,21 @@ public class ArticleDetailFragment extends Fragment implements
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        mStartingPosition = getArguments().getInt(ARG_STARTING_POSITION);
-        mCurrentPosition = getArguments().getInt(ARG_CURRENT_POSITION);
-        mIsTransitioning = savedInstanceState == null && mStartingPosition == mCurrentPosition;
-        // mBackgroundImageFadeMillis = getResources().getInteger(
-        //        R.integer.fragment_details_background_image_fade_millis);
-
+        Log.i(ArticleDetailFragment.class.getSimpleName(), "onCreate: start");
+//        mStartingPosition = getArguments().getInt(ARG_STARTING_POSITION);
+//        mCurrentPosition = getArguments().getInt(ARG_CURRENT_POSITION);
+//        mIsTransitioning = savedInstanceState == null && mStartingPosition == mCurrentPosition;
+//
         if (getArguments().containsKey(ARG_ITEM_ID)) {
             mItemId = getArguments().getLong(ARG_ITEM_ID);
         }
 
-        if(mColorMap.containsKey(mItemId)) mMutedColor = mColorMap.get(mItemId);
-        updateStatusBarColor();
+        Log.i(ArticleDetailFragment.class.getSimpleName(), "onCreate: end");
 
     }
 
     public void scrollToTop(){
-        CoordinatorLayout.LayoutParams params = (CoordinatorLayout.LayoutParams) mHolder.scrollView.getLayoutParams();
-        AppBarLayout.Behavior behavior = (AppBarLayout.Behavior) params.getBehavior();
-        CoordinatorLayout coordinator = (CoordinatorLayout) mRootView.findViewById(R.id.detail_coordinator_layout);
         mHolder.scrollView.setExpanded(true, false);
-        if (behavior != null) {
-//            behavior.onNestedFling(coordinator, mHolder.scrollView, null, 0, -1000, true);
-//            Log.i(ArticleListActivity.class.getSimpleName(), "scrollToTop:" + params.height);
-////            behavior.onNestedFling((CoordinatorLayout) mRootView.findViewById(R.id.detail_coordinator_layout),
-////                    mHolder.scrollView, null, 0, 10000, true);
-        } else {
-//            Log.i(ArticleListActivity.class.getSimpleName(), "scrollToTop:null behavior");
-        }
     }
 
     @Override
@@ -218,8 +222,15 @@ public class ArticleDetailFragment extends Fragment implements
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
+
+        if(savedInstanceState != null && savedInstanceState.containsKey(ARG_ITEM_ID)){
+            mItemId = savedInstanceState.getLong(ARG_ITEM_ID);
+        }
+
         mRootView = inflater.inflate(R.layout.fragment_article_detail, container, false);
-        mHolder = new ViewHolder(mRootView);
+        mHolder = new ViewHolder(mRootView, mItemId);
+
+        updateStatusBarColor();
 
         mRootView.findViewById(R.id.share_fab).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -232,18 +243,32 @@ public class ArticleDetailFragment extends Fragment implements
             }
         });
 
-        mHolder.gradientBackground.setColors(new int[]{mMutedColor, 0x00000000});
-        mHolder.scrollView.addOnOffsetChangedListener(this);
-        startAlphaAnimation(mHolder.collapsedTitle, 0, View.INVISIBLE);
-
+        mIsEnterTransitionStarted = false;
+        mIsGradientColored = false;
+        mIsPhotoLoaded = false;
 
         bindViews();
+
+        mHolder.scrollView.addOnOffsetChangedListener(this);
+        startAlphaAnimation(mHolder.collapsedTitle, 0, View.INVISIBLE);
 
         return mRootView;
     }
 
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        outState.putLong(ARG_ITEM_ID, mItemId);
+        super.onSaveInstanceState(outState);
+
+
+    }
 
     private void startPostponedEnterTransition() {
+        if(!Utility.hasArticleColor(mItemId) || !mIsPhotoLoaded
+                || !Utility.POST_LOLLIPOP || mIsEnterTransitionStarted)
+            return;
+
+        mIsEnterTransitionStarted = true;
         mHolder.photo.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
             @Override
             public boolean onPreDraw() {
@@ -267,70 +292,115 @@ public class ArticleDetailFragment extends Fragment implements
             mRootView.setVisibility(View.VISIBLE);
             mRootView.animate().alpha(1);
 
-            String title    = mCursor.getString(ArticleLoader.Query.TITLE);
-            String body     = mCursor.getString(ArticleLoader.Query.BODY);
-            String author   = mCursor.getString(ArticleLoader.Query.AUTHOR);
-            String photoUrl = mCursor.getString(ArticleLoader.Query.THUMB_URL);
-            long date       = mCursor.getLong(ArticleLoader.Query.PUBLISHED_DATE);
+            final Utility.ArticleInfo articleInfo = new Utility.ArticleInfo(mCursor);
+            String dateStr  = Utility.makeDateString(articleInfo.date);
 
-            String dateStr  = DateUtils.getRelativeTimeSpanString(date,
-                    System.currentTimeMillis(),
-                    DateUtils.HOUR_IN_MILLIS,
-                    DateUtils.FORMAT_ABBREV_ALL).toString();
+            mHolder.title.setText(articleInfo.title + ":" + (Utility.hasArticleColor(articleInfo.id) ? Integer.toHexString(Utility.getArticleColor(articleInfo.id)) : ""));
+            mHolder.collapsedTitle.setText(articleInfo.title);
+            mHolder.authorDate.setText(Html.fromHtml(getString(R.string.author_date_str_html, dateStr, articleInfo.author)));
+            mHolder.body.setText(Html.fromHtml(articleInfo.body));
+            mHolder.paintGradientBackground();
 
-            mHolder.title.setText(title);
-            mHolder.collapsedTitle.setText(title);
-            mHolder.authorDate.setText(Html.fromHtml(dateStr + " by <font color='#ffffff'>" + author + "</font>"));
-            mHolder.body.setText(Html.fromHtml(body));
-
-            if(ArticleListActivity.POST_LOLLIPOP) {
-                String transitionName = ArticleListActivity.generateTransitionName(
-                        mCursor.getLong(ArticleLoader.Query._ID));
+            if(Utility.POST_LOLLIPOP) {
+                String transitionName = ArticleListActivity.generateTransitionName(articleInfo.id);
 
                 mHolder.photo.setTransitionName(transitionName);
-                mHolder.title.setTransitionName(transitionName + "_title");
-                mHolder.authorDate.setTransitionName(transitionName + "_author_date");
+//                mHolder.title.setTransitionName(transitionName + "_title");
+//                mHolder.authorDate.setTransitionName(transitionName + "_author_date");
+                mHolder.gradientView.setTransitionName(transitionName + "_container");
             }
 
-            Picasso.with(getActivity())
-                    .load(photoUrl)
-                    .into(mHolder.photo, mImageCallback);
+//            Picasso.with(getActivity())
+//                    .load(photoUrl)
+//                    .into(mHolder.photo, mImageCallback);
 
+            class MyImageListener implements ImageLoader.ImageListener {
+                private long mItemId2;
+                ArticleDetailFragment mFragment;
+                ViewHolder mHolder2;
+
+                public MyImageListener(long id, ArticleDetailFragment fragment, ViewHolder holder) {
+                    mItemId2 = id;
+                    mFragment = fragment;
+                    this.mHolder2 = holder;
+                }
+
+                @Override
+                public void onResponse(ImageLoader.ImageContainer imageContainer, boolean b) {
+                    Bitmap bitmap = imageContainer.getBitmap();
+                    if (bitmap != null) {
+                        if(!Utility.hasArticleColor(mItemId2))
+                            Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
+                                @Override
+                                public void onGenerated(Palette palette) {
+                                    Utility.updateArticleColorMap(mItemId2, palette.getDarkMutedColor(0xFF333333));
+                                    mHolder2.paintGradientBackground();
+                                    mFragment.updateStatusBarColor();
+                                    mFragment.startPostponedEnterTransition();
+                                }
+                            });
+
+                        mHolder2.photo.setImageBitmap(bitmap);
+                        mFragment.mIsPhotoLoaded = true;
+                        mFragment.startPostponedEnterTransition();
+                    }
+                }
+
+                @Override
+                public void onErrorResponse(VolleyError volleyError) {
+
+                }
+            }
+
+            ImageLoaderHelper.getInstance(getActivity()).getImageLoader()
+                    .get(articleInfo.photoUrl, new MyImageListener(articleInfo.id, this, this.mHolder));
 
 //            ImageLoaderHelper.getInstance(getActivity()).getImageLoader()
-//                    .get(photoUrl, new ImageLoader.ImageListener() {
+//                    .get(articleInfo.photoUrl, new ImageLoader.ImageListener() {
 //                        @Override
 //                        public void onResponse(ImageLoader.ImageContainer imageContainer, boolean b) {
 //                            Bitmap bitmap = imageContainer.getBitmap();
 //                            if (bitmap != null) {
-//                                if(!mColorMap.containsKey(mItemId))
+//                                if(!Utility.hasArticleColor(articleInfo.id))
 //                                    Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
 //                                        @Override
 //                                        public void onGenerated(Palette palette) {
-//                                            mMutedColor = palette.getDarkMutedColor(0xFF333333);
-//                                            mHolder.gradientBackground.setColors(new int[]{mMutedColor, 0x00000000});
-//                                            mColorMap.put(mItemId, mMutedColor);
-//                                            ArticleDetailActivity.updateStatusBarColorMap(mItemId, mMutedColor);
+//                                            Utility.updateArticleColorMap(articleInfo.id, palette.getDarkMutedColor(0xFF333333));
+//                                            mHolder.paintGradientBackground();
 //                                            updateStatusBarColor();
+//                                            startPostponedEnterTransition();
 //                                        }
 //                                    });
-//                                startPostponedEnterTransition();
+//
 //                                mHolder.photo.setImageBitmap(bitmap);
+//                                mIsPhotoLoaded = true;
+//                                startPostponedEnterTransition();
 //                            }
 //                        }
 //
 //                        @Override
 //                        public void onErrorResponse(VolleyError volleyError) {
-//                            startPostponedEnterTransition();
 //                        }
 //                    });
         } else {
             mRootView.setVisibility(View.GONE);
-            mHolder.title.setText("N/A");
-            mHolder.authorDate.setText("N/A");
-            mHolder.body.setText("N/A");
+            String noDataStr = getString(R.string.no_data_string);
+            mHolder.title.setText(noDataStr);
+            mHolder.authorDate.setText(noDataStr);
+            mHolder.body.setText(noDataStr);
         }
     }
+
+//    private void paintArticleColor() {
+//        if(Utility.hasArticleColor(mItemId)) {
+//            mHolder.gradientBackground.setColors(
+//                    new int[]{Utility.getArticleColor(mItemId), Color.TRANSPARENT});
+//            mIsGradientColored = true;
+//            updateStatusBarColor();
+//        } else {
+//            Log.i(ArticleDetailFragment.class.getSimpleName(), "Muted color: not found");
+//        }
+//    }
 
     private ArticleDetailActivity getActivityCast(){
         return (ArticleDetailActivity) getActivity();
@@ -338,7 +408,8 @@ public class ArticleDetailFragment extends Fragment implements
 
     public void updateStatusBarColor(){
         ArticleDetailActivity activity = getActivityCast();
-        if(activity != null) activity.updateStatusBarColor(mItemId);
+        if(activity != null && activity.getSelectedItemId() == mItemId)
+            activity.updateStatusBarColor();
     }
 
     @Override
@@ -378,20 +449,17 @@ public class ArticleDetailFragment extends Fragment implements
 
         handleAlphaOnTitle(percentage);
         handleToolbarTitleVisibility(percentage);
-
     }
 
 
     private void handleToolbarTitleVisibility(float percentage) {
         if (percentage >= PERCENTAGE_TO_SHOW_TITLE_AT_TOOLBAR) {
-
             if(!mIsTheTitleVisible) {
                 startAlphaAnimation(mHolder.collapsedTitle, ALPHA_ANIMATIONS_DURATION, View.VISIBLE);
                 mIsTheTitleVisible = true;
             }
 
         } else {
-
             if (mIsTheTitleVisible) {
                 startAlphaAnimation(mHolder.collapsedTitle, ALPHA_ANIMATIONS_DURATION, View.INVISIBLE);
                 mIsTheTitleVisible = false;
@@ -399,16 +467,13 @@ public class ArticleDetailFragment extends Fragment implements
         }
     }
 
-
     private void handleAlphaOnTitle(float percentage) {
         if (percentage >= PERCENTAGE_TO_HIDE_TITLE_DETAILS) {
             if(mIsTheTitleContainerVisible) {
                 startAlphaAnimation(mHolder.titleContainer, ALPHA_ANIMATIONS_DURATION, View.INVISIBLE);
                 mIsTheTitleContainerVisible = false;
             }
-
         } else {
-
             if (!mIsTheTitleContainerVisible) {
                 startAlphaAnimation(mHolder.titleContainer, ALPHA_ANIMATIONS_DURATION, View.VISIBLE);
                 mIsTheTitleContainerVisible = true;
