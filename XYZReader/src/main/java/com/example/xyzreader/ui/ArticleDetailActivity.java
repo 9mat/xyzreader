@@ -7,15 +7,12 @@ import android.app.SharedElementCallback;
 import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
-import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v13.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
-import android.transition.Slide;
-import android.transition.TransitionSet;
 import android.util.Log;
-import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.animation.AlphaAnimation;
@@ -90,28 +87,14 @@ public class ArticleDetailActivity extends AppCompatActivity
 
     @Override
     public void onBackPressed() {
-        Log.i(ArticleListActivity.class.getSimpleName(), "onBackPressed");
-        mCurrentDetailsFragment.scrollToTop();
+        mCurrentDetailsFragment.expandAppBar();
         final ArticleDetailActivity activity = this;
-
-        new AsyncTask<Void, Void, Void>() {
+        new Handler().post(new Runnable() {
             @Override
-            protected Void doInBackground(Void... params) {
-                try {
-                    Thread.sleep(700);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                return null;
-            }
-
-            @Override
-            protected void onPostExecute(Void aVoid) {
+            public void run() {
                 activity.finishAfterTransition();
-                //super.onPostExecute(aVoid);
             }
-
-        }.execute();
+        });
     }
 
     @Override

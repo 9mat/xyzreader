@@ -11,14 +11,15 @@ import android.content.IntentFilter;
 import android.content.Loader;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.graphics.Palette;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.util.Log;
 import android.util.Pair;
 import android.view.View;
@@ -121,11 +122,11 @@ public class ArticleListActivity extends AppCompatActivity implements
 
         Utility.sGlobalContext = this.getApplicationContext();
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
 //            getWindow().getDecorView().setSystemUiVisibility(
 //                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
 //                            View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
-        }
+//        }
 
         setContentView(R.layout.activity_article_list);
         setExitSharedElementCallback(mCallback);
@@ -256,15 +257,42 @@ public class ArticleListActivity extends AppCompatActivity implements
                     if (mIsDetailsActivityStarted) return;
                     mIsDetailsActivityStarted = true;
 
-                    Bundle bundle = null;
-                    if (Utility.POST_LOLLIPOP)
-                        bundle = ActivityOptions.makeSceneTransitionAnimation(
-                                ArticleListActivity.this,
-                                vh.getShareElementPairs()).toBundle();
+                    mRecyclerView.scrollToPosition(vh.getLayoutPosition());
 
-                    Intent intent = new Intent(Intent.ACTION_VIEW, ItemsContract.Items.buildItemUri(getItemId(vh.getAdapterPosition())));
-                    intent.putExtra(EXTRA_STARTING_POSITION, mPosition);
-                    startActivity(intent, bundle);
+                    final Bundle bundle = Utility.POST_LOLLIPOP ?
+                            ActivityOptions.makeSceneTransitionAnimation(
+                                ArticleListActivity.this,
+                                vh.getShareElementPairs()).toBundle() :
+                            null;
+
+                    new Handler().post(new Runnable() {
+                        @Override
+                        public void run() {
+                            Intent intent = new Intent(Intent.ACTION_VIEW, ItemsContract.Items.buildItemUri(getItemId(vh.getAdapterPosition())));
+                            intent.putExtra(EXTRA_STARTING_POSITION, mPosition);
+                            startActivity(intent, bundle);
+                        }
+                    });
+
+//                    new AsyncTask<Void, Void, Void>() {
+//                        @Override
+//                        protected Void doInBackground(Void... params) {
+//                            try {
+//                                Thread.sleep(700);
+//                            } catch (InterruptedException e) {
+//                                e.printStackTrace();
+//                            }
+//                            return null;
+//                        }
+//
+//                        @Override
+//                        protected void onPostExecute(Void aVoid) {
+//                            Intent intent = new Intent(Intent.ACTION_VIEW, ItemsContract.Items.buildItemUri(getItemId(vh.getAdapterPosition())));
+//                            intent.putExtra(EXTRA_STARTING_POSITION, mPosition);
+//                            startActivity(intent, bundle);
+//                        }
+//
+//                    }.execute();
                 }
 
             });
@@ -277,7 +305,7 @@ public class ArticleListActivity extends AppCompatActivity implements
             mCursor.moveToPosition(position);
 
             Utility.ArticleInfoSimple articleInfo = new Utility.ArticleInfoSimple(mCursor);
-            holder.bindView(articleInfo);
+            holder.bindViews(articleInfo);
 
             sTransitionNameMap.put(position, ArticleListActivity.generateTransitionName(articleInfo.id));
         }
@@ -308,11 +336,13 @@ public class ArticleListActivity extends AppCompatActivity implements
             mActivity           = activity;
         }
 
-        public void bindView(final Utility.ArticleInfoSimple articleInfo) {
+        public void bindViews(final Utility.ArticleInfoSimple articleInfo) {
 
-            String dateStr  = Utility.makeDateString(articleInfo.date);
             titleView.setText(articleInfo.title);
-            subtitleView.setText(mActivity.getResources().getString(R.string.author_date_str_plain, dateStr, articleInfo.author));
+            subtitleView.setText(mActivity.getResources().getString(
+                    R.string.author_date_str_plain,
+                    Utility.makeDateString(articleInfo.date),
+                    articleInfo.author));
 
             paintTextView(articleInfo.id);
 
@@ -374,8 +404,6 @@ public class ArticleListActivity extends AppCompatActivity implements
         public PairViewString[] getShareElementPairs(){
             View[] sharedViews = new View[] {
                     thumbnailView,
-//                    titleView,
-//                    subtitleView,
                     thumbnailContainer,
                     mActivity.findViewById(android.R.id.statusBarBackground),
                     mActivity.findViewById(android.R.id.navigationBarBackground)
