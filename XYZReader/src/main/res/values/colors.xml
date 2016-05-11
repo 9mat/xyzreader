@@ -19,14 +19,22 @@
     <color name="photo_placeholder">#ccc</color>
     <color name="teal">#009688</color>
     <color name="dark_teal">#00796B</color>
-    <color name="red">#FF5252</color>
     <color name="black">#212121</color>
     <color name="grey">#727272</color>
     <color name="light_grey">#B6B6B6</color>
     <color name="white">#FFFFFF</color>
     <color name="ltgray">#ffe0e0e0</color>
+    <color name="very_light_grey">#fff5f5f5</color>
     <color name="dark_blue_grey">#455A64</color>
     <color name="blue_grey">#607D8B</color>
     <color name="light_blue_grey">#CFD8DC</color>
     <color name="dark_grey">#CC000000</color>
+    <color name="dark_red">#D32F2F</color>
+    <color name="red">#F44336</color>
+    <color name="light_red">#FFCDD2</color>
+    <color name="amber">#FFC107</color>
+    <color name="dark_brown">#5D4037</color>
+    <color name="brown">#795548</color>
+    <color name="light_brown">#D7CCC8</color>
+    <color name="deep_orange">#FF5722</color>
 </resources>

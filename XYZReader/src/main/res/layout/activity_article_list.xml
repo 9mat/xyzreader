@@ -21,6 +21,8 @@
                 android:layout_height="wrap_content"
                 android:src="@drawable/logo"
                 android:layout_gravity="bottom"
+                android:layout_marginLeft="@dimen/logo_margin"
+                android:layout_marginStart="@dimen/logo_margin"
                 android:contentDescription="@string/app_name" />
 
             <android.support.v7.widget.Toolbar

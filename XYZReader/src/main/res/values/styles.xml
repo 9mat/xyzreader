@@ -18,9 +18,9 @@
 <resources>
 
     <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
-        <item name="colorPrimary">@color/blue_grey</item>
-        <item name="colorPrimaryDark">@color/dark_blue_grey</item>
-        <item name="colorAccent">@color/red</item>
+        <item name="colorPrimary">@color/brown</item>
+        <item name="colorPrimaryDark">@color/dark_brown</item>
+        <item name="colorAccent">@color/amber</item>
         <item name="android:fitsSystemWindows">true</item>
         <item name="android:windowExitTransition">@transition/main_exit</item>
         <item name="android:windowReenterTransition">@transition/main_reenter</item>

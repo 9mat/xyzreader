@@ -230,7 +230,7 @@ public class ArticleDetailFragment extends Fragment implements
                 mIsTimeOutTransitionStart = true;
                 if (Utility.POST_LOLLIPOP) startPostponedEnterTransition();
             }
-        }, TIME_OUT_TRANSITION_START);
+        }, getResources().getInteger(R.integer.deltail_enter_transition_time_out));
 
         if (getArguments().containsKey(ARG_ITEM_ID)) {
             mItemId = getArguments().getLong(ARG_ITEM_ID);
