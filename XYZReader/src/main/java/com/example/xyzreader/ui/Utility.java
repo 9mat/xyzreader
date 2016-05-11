@@ -22,6 +22,8 @@ public final class Utility {
     static final boolean POST_LOLLIPOP = Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP;
     static Context sGlobalContext;
 
+    static int mPrimaryDarkColor = 0xFF333333;
+
     private static Map<Long, Integer> sArticleColorMap = new HashMap<>();
 
 
@@ -52,9 +54,10 @@ public final class Utility {
     }
 
     public static int getPrimaryDarkColor(Context context) {
+        if(context == null) return mPrimaryDarkColor;
         TypedValue typedValue = new TypedValue();
         context.getTheme().resolveAttribute(R.attr.colorPrimaryDark, typedValue, true);
-        return typedValue.data;
+        return (mPrimaryDarkColor = typedValue.data);
     }
 
     public static Context getGlobalContext() {

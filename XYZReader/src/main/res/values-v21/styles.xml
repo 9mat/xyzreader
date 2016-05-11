@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowExitTransition">@transition/main_exit</item>
+        <item name="android:windowReenterTransition">@transition/main_reenter</item>
+        <item name="android:windowSharedElementExitTransition">@transition/shared_elements</item>
+        <item name="android:windowSharedElementReenterTransition">@transition/shared_elements</item>
+    </style>
+
+    <style name="AppTheme.Detail" parent="AppTheme">
+        <item name="android:windowEnterTransition">@transition/detail_enter</item>
+        <item name="android:windowReturnTransition">@transition/detail_return</item>
+        <item name="android:windowSharedElementEnterTransition">@transition/shared_elements</item>
+        <item name="android:windowSharedElementReturnTransition">@transition/shared_elements</item>
+    </style>
+
+</resources>

@@ -12,12 +12,14 @@ import android.content.IntentFilter;
 import android.content.Loader;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.Rect;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.graphics.Palette;
+import android.support.v7.widget.CardView;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -232,6 +234,15 @@ public class ArticleListActivity extends AppCompatActivity implements
         mRecyclerView.setAdapter(null);
     }
 
+    public void scrollTo(View view) {
+        int cardTop = view.getTop();
+        int cardBottom = view.getBottom();
+        int recyclerViewHeight = mRecyclerView.getHeight();
+
+        if(cardTop < 0) mRecyclerView.scrollBy(0, cardTop);
+        else if(cardBottom > recyclerViewHeight) mRecyclerView.scrollBy(0, -recyclerViewHeight + cardBottom);
+    }
+
     private class Adapter extends RecyclerView.Adapter<ViewHolder> {
         private Cursor mCursor;
         private Activity mActivity;
@@ -258,7 +269,7 @@ public class ArticleListActivity extends AppCompatActivity implements
                     if (mIsDetailsActivityStarted) return;
                     mIsDetailsActivityStarted = true;
 
-                    mRecyclerView.scrollToPosition(vh.getLayoutPosition());
+                    scrollTo(vh.mCardView);
 
                     Bundle bundle = null;
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
@@ -306,6 +317,7 @@ public class ArticleListActivity extends AppCompatActivity implements
         private TextView subtitleView;
         private View thumbnailContainer;
         private Activity mActivity;
+        private CardView mCardView;
 
         public ViewHolder(View view, Activity activity) {
             super(view);
@@ -314,6 +326,7 @@ public class ArticleListActivity extends AppCompatActivity implements
             subtitleView        = (TextView) view.findViewById(R.id.article_subtitle);
             thumbnailContainer  = view.findViewById(R.id.thumbnail_container);
             mActivity           = activity;
+            mCardView           = (CardView) view.findViewById(R.id.card_view);
         }
 
         public void bindViews(final Utility.ArticleInfoSimple articleInfo) {
