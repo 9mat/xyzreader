@@ -177,7 +177,8 @@ public class ArticleListActivity extends AppCompatActivity implements
         int startingPosition = mTmpReenterState.getInt(EXTRA_STARTING_POSITION);
         int currentPosition = mTmpReenterState.getInt(EXTRA_CURRENT_POSITION);
         if (startingPosition != currentPosition) {
-            mRecyclerView.scrollToPosition(currentPosition);
+            scrollTo(mRecyclerView.getChildAt(currentPosition));
+//            mRecyclerView.scrollToPosition(currentPosition);
         }
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             Log.i(ArticleListActivity.class.getSimpleName(), "onActivityReenter");
@@ -235,6 +236,8 @@ public class ArticleListActivity extends AppCompatActivity implements
     }
 
     public void scrollTo(View view) {
+        if(view == null) return;
+
         int cardTop = view.getTop();
         int cardBottom = view.getBottom();
         int recyclerViewHeight = mRecyclerView.getHeight();
@@ -246,7 +249,7 @@ public class ArticleListActivity extends AppCompatActivity implements
     private class Adapter extends RecyclerView.Adapter<ViewHolder> {
         private Cursor mCursor;
         private Activity mActivity;
-        private int mPosition;
+//        private int mPosition;
 
         public Adapter(Cursor cursor, Activity activity) {
             mCursor = cursor;
@@ -284,7 +287,7 @@ public class ArticleListActivity extends AppCompatActivity implements
                         @Override
                         public void run() {
                             Intent intent = new Intent(Intent.ACTION_VIEW, ItemsContract.Items.buildItemUri(getItemId(vh.getAdapterPosition())));
-                            intent.putExtra(EXTRA_STARTING_POSITION, mPosition);
+                            intent.putExtra(EXTRA_STARTING_POSITION, vh.getAdapterPosition());
                             startActivity(intent, bundle1);
                         }
                     }, getResources().getInteger(R.integer.list_item_scroll_duration));
@@ -296,7 +299,7 @@ public class ArticleListActivity extends AppCompatActivity implements
 
         @Override
         public void onBindViewHolder(final ViewHolder holder, int position) {
-            mPosition = position;
+//            mPosition = position;
             mCursor.moveToPosition(position);
 
             Utility.ArticleInfoSimple articleInfo = new Utility.ArticleInfoSimple(mCursor);

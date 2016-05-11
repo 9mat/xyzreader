@@ -77,12 +77,14 @@ public class ArticleDetailActivity extends AppCompatActivity
 
     @Override
     public void onEnterAnimationComplete() {
-        if(mCurrentDetailsFragment != null) {
-            View view = mCurrentDetailsFragment.getTitleView();
-            view.setAlpha(0f);
-            view.animate()
-                    .setDuration(getResources().getInteger(R.integer.detail_title_alpha_animation_duration))
-                    .alpha(1f);
+        if(mCurrentDetailsFragment != null){
+            if(!mCurrentDetailsFragment.getIsEnterTransitionStarted()) {
+                View view = mCurrentDetailsFragment.getTitleView();
+                view.setAlpha(0f);
+                view.animate()
+                        .setDuration(getResources().getInteger(R.integer.detail_title_alpha_animation_duration))
+                        .alpha(1f);
+            }
         }
         super.onEnterAnimationComplete();
     }
@@ -141,20 +143,23 @@ public class ArticleDetailActivity extends AppCompatActivity
 
         mPagerAdapter = new MyPagerAdapter(getFragmentManager());
         mPager = (ViewPager) findViewById(R.id.pager);
-        mPager.setAdapter(mPagerAdapter);
+        if(mPager != null) {
+            mPager.setAdapter(mPagerAdapter);
 
-        mPager.addOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
-            @Override
-            public void onPageSelected(int position) {
-                if (mCursor != null) {
-                    mCursor.moveToPosition(position);
-                    mSelectedItemId = mCursor.getLong(ArticleLoader.Query._ID);
-                    if(mCurrentDetailsFragment != null) mCurrentDetailsFragment.paintGradientBackground();
-                    updateStatusBarColor();
+            mPager.addOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
+                @Override
+                public void onPageSelected(int position) {
+                    if (mCursor != null) {
+                        mCursor.moveToPosition(position);
+                        mSelectedItemId = mCursor.getLong(ArticleLoader.Query._ID);
+                        if (mCurrentDetailsFragment != null)
+                            mCurrentDetailsFragment.paintGradientBackground();
+                        updateStatusBarColor();
+                    }
+                    mCurrentPosition = position;
                 }
-                mCurrentPosition = position;
-            }
-        });
+            });
+        }
 
         if (savedInstanceState == null) {
             if (getIntent() != null && getIntent().getData() != null) {

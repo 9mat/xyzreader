@@ -76,6 +76,10 @@ public class ArticleDetailFragment extends Fragment implements
         return null;
     }
 
+    public boolean getIsEnterTransitionStarted() {
+        return mIsEnterTransitionStarted;
+    }
+
     View[] getSharedElements(){
         return mHolder.getSharedElements();
     }
