@@ -1,5 +1,6 @@
 package com.example.xyzreader.ui;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.ActivityOptions;
 import android.app.LoaderManager;
@@ -11,6 +12,7 @@ import android.content.IntentFilter;
 import android.content.Loader;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.widget.SwipeRefreshLayout;
@@ -55,61 +57,6 @@ public class ArticleListActivity extends AppCompatActivity implements
     private boolean mIsDetailsActivityStarted;
     private static Map<Integer, String> sTransitionNameMap = new HashMap<>();
 
-    private final SharedElementCallback mCallback = new SharedElementCallback() {
-        @Override
-        public void onMapSharedElements(List<String> names, Map<String, View> sharedElements) {
-            if (mTmpReenterState != null) {
-                Log.i("SharedElementCallback", "onMapSharedElement:reentering");
-                int startingPosition = mTmpReenterState.getInt(EXTRA_STARTING_POSITION);
-                int currentPosition = mTmpReenterState.getInt(EXTRA_CURRENT_POSITION);
-                if (startingPosition != currentPosition) {
-                    // If startingPosition != currentPosition the user must have swiped to a
-                    // different page in the DetailsActivity. We must update the shared element
-                    // so that the correct one falls into place.
-                    String newTransitionName = sTransitionNameMap.get(currentPosition);
-
-                    View[] elements = new View[] {
-                            mRecyclerView.findViewWithTag(newTransitionName),
-//                            mRecyclerView.findViewWithTag(newTransitionName + "_title"),
-//                            mRecyclerView.findViewWithTag(newTransitionName + "_author_date"),
-                            mRecyclerView.findViewWithTag(Utility.makeTransitionName(newTransitionName, "container")),
-                            findViewById(android.R.id.statusBarBackground),
-                            findViewById(android.R.id.navigationBarBackground)
-                    } ;
-
-                    if (elements[0] != null) {
-                        names.clear();
-                        sharedElements.clear();
-
-                        for(View v: elements) {
-                            if(v != null){
-                                names.add(v.getTransitionName());
-                                sharedElements.put(v.getTransitionName(), v);
-                            }
-                        }
-                    }
-                }
-
-                mTmpReenterState = null;
-            } else {
-                // If mTmpReenterState is null, then the activity is exiting.
-                Log.i("SharedElementCallback", "onMapSharedElement:exiting");
-                View navigationBar = findViewById(android.R.id.navigationBarBackground);
-                View statusBar = findViewById(android.R.id.statusBarBackground);
-                if (navigationBar != null) {
-                    names.add(navigationBar.getTransitionName());
-                    sharedElements.put(navigationBar.getTransitionName(), navigationBar);
-                }
-                if (statusBar != null) {
-                    names.add(statusBar.getTransitionName());
-                    sharedElements.put(statusBar.getTransitionName(), statusBar);
-                }
-            }
-        }
-
-
-    };
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -123,7 +70,63 @@ public class ArticleListActivity extends AppCompatActivity implements
 //        }
 
         setContentView(R.layout.activity_article_list);
-        setExitSharedElementCallback(mCallback);
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            SharedElementCallback mCallback = new SharedElementCallback() {
+                @Override
+                @TargetApi(Build.VERSION_CODES.LOLLIPOP)
+                public void onMapSharedElements(List<String> names, Map<String, View> sharedElements) {
+                    if (mTmpReenterState != null) {
+                        Log.i("SharedElementCallback", "onMapSharedElement:reentering");
+                        int startingPosition = mTmpReenterState.getInt(EXTRA_STARTING_POSITION);
+                        int currentPosition = mTmpReenterState.getInt(EXTRA_CURRENT_POSITION);
+                        if (startingPosition != currentPosition) {
+                            // If startingPosition != currentPosition the user must have swiped to a
+                            // different page in the DetailsActivity. We must update the shared element
+                            // so that the correct one falls into place.
+                            String newTransitionName = sTransitionNameMap.get(currentPosition);
+
+                            View[] elements = new View[]{
+                                    mRecyclerView.findViewWithTag(newTransitionName),
+                                    mRecyclerView.findViewWithTag(Utility.makeTransitionName(newTransitionName, "container")),
+                                    findViewById(android.R.id.statusBarBackground),
+                                    findViewById(android.R.id.navigationBarBackground)
+                            };
+
+                            if (elements[0] != null) {
+                                names.clear();
+                                sharedElements.clear();
+
+                                for (View v : elements) {
+                                    if (v != null) {
+                                        names.add(v.getTransitionName());
+                                        sharedElements.put(v.getTransitionName(), v);
+                                    }
+                                }
+                            }
+                        }
+
+                        mTmpReenterState = null;
+                    } else {
+                        // If mTmpReenterState is null, then the activity is exiting.
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+
+                            View navigationBar = findViewById(android.R.id.navigationBarBackground);
+                            View statusBar = findViewById(android.R.id.statusBarBackground);
+                            if (navigationBar != null) {
+                                names.add(navigationBar.getTransitionName());
+                                sharedElements.put(navigationBar.getTransitionName(), navigationBar);
+                            }
+                            if (statusBar != null) {
+                                names.add(statusBar.getTransitionName());
+                                sharedElements.put(statusBar.getTransitionName(), statusBar);
+                            }
+                        }
+                    }
+                }
+            };
+            setExitSharedElementCallback(mCallback);
+        }
 
         mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
         mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
@@ -174,11 +177,12 @@ public class ArticleListActivity extends AppCompatActivity implements
         if (startingPosition != currentPosition) {
             mRecyclerView.scrollToPosition(currentPosition);
         }
-        if(Utility.POST_LOLLIPOP) {
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             Log.i(ArticleListActivity.class.getSimpleName(), "onActivityReenter");
-            postponeEnterTransition();
+                postponeEnterTransition();
             mRecyclerView.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
                 @Override
+                @TargetApi(Build.VERSION_CODES.LOLLIPOP)
                 public boolean onPreDraw() {
                     mRecyclerView.getViewTreeObserver().removeOnPreDrawListener(this);
                     // TODO: figure out why it is necessary to request layout here in order to get a smooth transition.
@@ -256,18 +260,21 @@ public class ArticleListActivity extends AppCompatActivity implements
 
                     mRecyclerView.scrollToPosition(vh.getLayoutPosition());
 
-                    final Bundle bundle = Utility.POST_LOLLIPOP ?
-                            ActivityOptions.makeSceneTransitionAnimation(
-                                ArticleListActivity.this,
-                                vh.getShareElementPairs()).toBundle() :
-                            null;
+                    Bundle bundle = null;
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+                        bundle = ActivityOptions.makeSceneTransitionAnimation(
+                                        ArticleListActivity.this,
+                                        vh.getShareElementPairs()).toBundle();
+                    }
+
+                    final Bundle bundle1 = bundle;
 
                     new Handler().postDelayed(new Runnable() {
                         @Override
                         public void run() {
                             Intent intent = new Intent(Intent.ACTION_VIEW, ItemsContract.Items.buildItemUri(getItemId(vh.getAdapterPosition())));
                             intent.putExtra(EXTRA_STARTING_POSITION, mPosition);
-                            startActivity(intent, bundle);
+                            startActivity(intent, bundle1);
                         }
                     }, getResources().getInteger(R.integer.list_item_scroll_duration));
                 }
@@ -287,8 +294,6 @@ public class ArticleListActivity extends AppCompatActivity implements
             sTransitionNameMap.put(position, Utility.makeTransitionName(articleInfo.id));
         }
 
-
-
         @Override
         public int getItemCount() {
             return mCursor.getCount();
@@ -300,7 +305,6 @@ public class ArticleListActivity extends AppCompatActivity implements
         private TextView titleView;
         private TextView subtitleView;
         private View thumbnailContainer;
-        private View mCardView;
         private Activity mActivity;
 
         public ViewHolder(View view, Activity activity) {
@@ -309,7 +313,6 @@ public class ArticleListActivity extends AppCompatActivity implements
             titleView           = (TextView) view.findViewById(R.id.article_title);
             subtitleView        = (TextView) view.findViewById(R.id.article_subtitle);
             thumbnailContainer  = view.findViewById(R.id.thumbnail_container);
-            mCardView           = view.findViewById(R.id.card_view);
             mActivity           = activity;
         }
 
@@ -331,7 +334,7 @@ public class ArticleListActivity extends AppCompatActivity implements
                             Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
                                 @Override
                                 public void onGenerated(Palette palette) {
-                                    int color = palette.getDarkMutedColor(0xFF333333);
+                                    int color = palette.getDarkMutedColor(Utility.getPrimaryDarkColor(mActivity));
                                     Utility.updateArticleColorMap(articleInfo.id, color);
                                     paintTextView(articleInfo.id);
                                 }
@@ -351,7 +354,7 @@ public class ArticleListActivity extends AppCompatActivity implements
             thumbnailView.setScaleType(ImageView.ScaleType.CENTER_CROP);
             thumbnailView.setAspectRatio(1.5f);
 
-            if(Utility.POST_LOLLIPOP){
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP){
                 String transitionName = Utility.makeTransitionName(articleInfo.id);
                 String transitionNameContainer = Utility.makeTransitionName(articleInfo.id, "container");
 
@@ -378,6 +381,7 @@ public class ArticleListActivity extends AppCompatActivity implements
             }
         }
 
+        @TargetApi(Build.VERSION_CODES.LOLLIPOP)
         public PairViewString[] getShareElementPairs(){
             View[] sharedViews = new View[] {
                     thumbnailView,

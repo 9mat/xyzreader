@@ -48,9 +48,12 @@ public final class Utility {
 
     public static int getArticleColor(long id){
         if(sArticleColorMap.containsKey(id)) return sArticleColorMap.get(id);
+        return getPrimaryDarkColor(getGlobalContext());
+    }
 
+    public static int getPrimaryDarkColor(Context context) {
         TypedValue typedValue = new TypedValue();
-        getGlobalContext().getTheme().resolveAttribute(R.attr.colorPrimaryDark, typedValue, true);
+        context.getTheme().resolveAttribute(R.attr.colorPrimaryDark, typedValue, true);
         return typedValue.data;
     }
 

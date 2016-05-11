@@ -7,16 +7,15 @@ import android.app.SharedElementCallback;
 import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.Parcelable;
 import android.support.v13.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.AlphaAnimation;
 import android.widget.ImageView;
 
 import com.example.xyzreader.R;
@@ -57,35 +56,6 @@ public class ArticleDetailActivity extends AppCompatActivity
     private int mStartingPosition;
     private boolean mIsReturning;
 
-    private final SharedElementCallback mCallback = new SharedElementCallback() {
-        @Override
-        public void onMapSharedElements(List<String> names, Map<String, View> sharedElements) {
-            Log.i(SharedElementCallback.class.getSimpleName(), "onMapSharedElements");
-            if (mIsReturning) {
-                ImageView sharedElement = mCurrentDetailsFragment.getPhotoView();
-                if (sharedElement == null) {
-                    // If shared element is null, then it has been scrolled off screen and
-                    // no longer visible. In this case we cancel the shared element transition by
-                    // removing the shared element from the shared elements map.
-                    names.clear();
-                    sharedElements.clear();
-                } else if (mStartingPosition != mCurrentPosition) {
-                    // If the user has swiped to a different ViewPager page, then we need to
-                    // remove the old shared element and replace it with the new shared element
-                    // that should be transitioned instead.
-                    names.clear();
-                    sharedElements.clear();
-
-                    for(View v : mCurrentDetailsFragment.getSharedElements()){
-                        names.add(v.getTransitionName());
-                        sharedElements.put(v.getTransitionName(), v);
-                    }
-                }
-            }
-
-        }
-    };
-
     @Override
     public void onBackPressed() {
         mCurrentDetailsFragment.expandAppBar();
@@ -97,6 +67,12 @@ public class ArticleDetailActivity extends AppCompatActivity
                 activity.finishAfterTransition();
             }
         }, getResources().getInteger(R.integer.detail_expanding_appbar_duration));
+    }
+
+    @Override
+    protected void onResume() {
+        updateStatusBarColor();
+        super.onResume();
     }
 
     @Override
@@ -114,11 +90,41 @@ public class ArticleDetailActivity extends AppCompatActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (Utility.POST_LOLLIPOP) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
 //            getWindow().getDecorView().setSystemUiVisibility(
 //                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
             postponeEnterTransition();
             setContentView(R.layout.activity_article_detail);
+            SharedElementCallback mCallback = new SharedElementCallback() {
+                @Override
+                public void onMapSharedElements(List<String> names, Map<String, View> sharedElements) {
+                    Log.i(SharedElementCallback.class.getSimpleName(), "onMapSharedElements");
+                    if (mIsReturning) {
+                        ImageView sharedElement = mCurrentDetailsFragment.getPhotoView();
+                        if (sharedElement == null) {
+                            // If shared element is null, then it has been scrolled off screen and
+                            // no longer visible. In this case we cancel the shared element transition by
+                            // removing the shared element from the shared elements map.
+                            names.clear();
+                            sharedElements.clear();
+                        } else if (mStartingPosition != mCurrentPosition) {
+                            // If the user has swiped to a different ViewPager page, then we need to
+                            // remove the old shared element and replace it with the new shared element
+                            // that should be transitioned instead.
+                            names.clear();
+                            sharedElements.clear();
+
+                            for (View v : mCurrentDetailsFragment.getSharedElements()) {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                                    names.add(v.getTransitionName());
+                                    sharedElements.put(v.getTransitionName(), v);
+                                }
+                            }
+                        }
+                    }
+
+                }
+            };
             setEnterSharedElementCallback(mCallback);
         } else {
             setContentView(R.layout.activity_article_detail);
@@ -177,7 +183,8 @@ public class ArticleDetailActivity extends AppCompatActivity
         data.putExtra(EXTRA_CURRENT_POSITION, mCurrentPosition);
         data.putExtra(EXTRA_STARTING_POSITION, mStartingPosition);
         setResult(RESULT_OK, data);
-        super.finishAfterTransition();
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) super.finishAfterTransition();
+        else finish();
     }
 
     @Override
@@ -214,7 +221,9 @@ public class ArticleDetailActivity extends AppCompatActivity
 
     public void updateStatusBarColor() {
         if (Utility.hasArticleColor(mSelectedItemId)) {
-            getWindow().setStatusBarColor(Utility.getArticleColor(mSelectedItemId));
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                getWindow().setStatusBarColor(Utility.getArticleColor(mSelectedItemId));
+            }
         }
     }
 

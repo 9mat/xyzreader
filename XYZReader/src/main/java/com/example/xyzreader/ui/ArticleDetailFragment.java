@@ -1,5 +1,6 @@
 package com.example.xyzreader.ui;
 
+import android.annotation.TargetApi;
 import android.app.Fragment;
 import android.app.LoaderManager;
 import android.content.Context;
@@ -10,6 +11,7 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Rect;
 import android.graphics.drawable.GradientDrawable;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.NonNull;
@@ -46,7 +48,6 @@ public class ArticleDetailFragment extends Fragment implements
     private static final String TAG = "ArticleDetailFragment";
 
     public static final String ARG_ITEM_ID = "item_id";
-    private static final int TIME_OUT_TRANSITION_START = 800;
 
     private Cursor mCursor;
     private long mItemId;
@@ -64,7 +65,6 @@ public class ArticleDetailFragment extends Fragment implements
 
     private boolean mIsEnterTransitionStarted = false;
     private boolean mIsPhotoLoaded = false;
-    private boolean mIsGradientColored = false;
 
     private boolean mIsTimeOutTransitionStart;
 
@@ -94,7 +94,6 @@ public class ArticleDetailFragment extends Fragment implements
         public TextView title, collapsedTitle, authorDate, body;
         public ImageView photo;
         public LinearLayout titleContainer;
-        private GradientDrawable gradientBackground;
         private View gradientView;
         public AppBarLayout scrollView;
 
@@ -105,7 +104,6 @@ public class ArticleDetailFragment extends Fragment implements
             titleContainer      = (LinearLayout) root.findViewById(R.id.meta_bar);
             collapsedTitle      = (TextView) root.findViewById(R.id.collapsed_title);
             gradientView        = root.findViewById(R.id.gradient_background);
-            gradientBackground  = (GradientDrawable) gradientView.getBackground();
             title               = (TextView) root.findViewById(R.id.article_title);
             authorDate          = (TextView) root.findViewById(R.id.article_byline);
             body                = (TextView) root.findViewById(R.id.article_body);
@@ -131,7 +129,7 @@ public class ArticleDetailFragment extends Fragment implements
 
             paintGradientBackground();
 
-            if(Utility.POST_LOLLIPOP) {
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                 photo.setTransitionName(Utility.makeTransitionName(articleInfo.id));
                 gradientView.setTransitionName(Utility.makeTransitionName(articleInfo.id, "container"));
             }
@@ -146,7 +144,8 @@ public class ArticleDetailFragment extends Fragment implements
                                     Palette.from(bitmap).generate(new Palette.PaletteAsyncListener() {
                                         @Override
                                         public void onGenerated(Palette palette) {
-                                            Utility.updateArticleColorMap(articleInfo.id, palette.getDarkMutedColor(0xFF333333));
+                                            Utility.updateArticleColorMap(articleInfo.id,
+                                                    palette.getDarkMutedColor(Utility.getPrimaryDarkColor(getActivity())));
                                             paintGradientBackground();
                                             updateStatusBarColor();
                                             startPostponedEnterTransition();
@@ -164,8 +163,10 @@ public class ArticleDetailFragment extends Fragment implements
                         }
                     });
 
+            startPostponedEnterTransition();
         }
 
+        @TargetApi(Build.VERSION_CODES.LOLLIPOP)
         public View[] getSharedElements(){
             return new View[] {
                     photo,
@@ -184,10 +185,6 @@ public class ArticleDetailFragment extends Fragment implements
 
         public void paintGradientBackground(){
             if(Utility.hasArticleColor(mArticleId)) {
-//                Log.i(ArticleDetailFragment.class.getSimpleName(), "ViewHolder paint id " + String.valueOf(mArticleId) + " color " + Integer.toHexString(Utility.getArticleColor(mArticleId)));
-//                if(mCursor!=null) Log.i(ArticleDetailFragment.class.getSimpleName(), "Cursor id " + String.valueOf(mCursor.getLong(ArticleLoader.Query._ID)) + " title "
-//                        + mCursor.getString(ArticleLoader.Query.TITLE));
-//                else Log.i(ArticleDetailFragment.class.getSimpleName(), "cursor is null");
                 ((GradientDrawable) gradientView.getBackground()).setColors(new int[]{
                                 Utility.getArticleColor(mArticleId),
                                 Color.TRANSPARENT
@@ -228,7 +225,7 @@ public class ArticleDetailFragment extends Fragment implements
             @Override
             public void run() {
                 mIsTimeOutTransitionStart = true;
-                if (Utility.POST_LOLLIPOP) startPostponedEnterTransition();
+                startPostponedEnterTransition();
             }
         }, getResources().getInteger(R.integer.deltail_enter_transition_time_out));
 
@@ -283,7 +280,6 @@ public class ArticleDetailFragment extends Fragment implements
         });
 
         mIsEnterTransitionStarted = false;
-        mIsGradientColored = false;
         mIsPhotoLoaded = false;
 
         bindViews();
@@ -299,11 +295,10 @@ public class ArticleDetailFragment extends Fragment implements
         outState.putLong(ARG_ITEM_ID, mItemId);
         super.onSaveInstanceState(outState);
 
-
     }
 
     private void startPostponedEnterTransition() {
-        if(mIsEnterTransitionStarted || !Utility.POST_LOLLIPOP) return;
+        if(mIsEnterTransitionStarted) return;
         if(!mIsTimeOutTransitionStart && (!Utility.hasArticleColor(mItemId) || !mIsPhotoLoaded)) return;
 
         mIsEnterTransitionStarted = true;
@@ -311,7 +306,9 @@ public class ArticleDetailFragment extends Fragment implements
             @Override
             public boolean onPreDraw() {
                 mHolder.photo.getViewTreeObserver().removeOnPreDrawListener(this);
-                getActivity().startPostponedEnterTransition();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    getActivity().startPostponedEnterTransition();
+                }
                 return true;
             }
         });
