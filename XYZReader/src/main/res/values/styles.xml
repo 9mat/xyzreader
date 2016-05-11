@@ -30,7 +30,7 @@
 
     <style name="AppTheme.Detail" parent="AppTheme">
         <item name="android:windowEnterTransition">@transition/detail_enter</item>
-        <item name="android:windowExitTransition">@transition/detail_exit</item>
+        <item name="android:windowReturnTransition">@transition/detail_exit</item>
         <item name="android:windowSharedElementEnterTransition">@transition/shared_elements</item>
         <item name="android:windowSharedElementReturnTransition">@transition/shared_elements</item>
     </style>

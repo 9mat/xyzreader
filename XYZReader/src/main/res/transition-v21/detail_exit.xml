@@ -3,7 +3,13 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:transitionOrdering="together">
 
-    <slide android:slideEdge="bottom" android:duration="5000">
+    <slide android:slideEdge="bottom">
+        <targets>
+            <target android:targetId="@+id/article_body"/>
+            <target android:targetId="@+id/detail_collapsing_toolbar" />
+            <target android:targetId="@+id/appbar_detail" />
+            <target android:targetId="@+id/meta_bar" />
+        </targets>
     </slide>
 
     <fade android:fadingMode="fade_out" android:duration="10">

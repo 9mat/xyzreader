@@ -4,5 +4,6 @@
     android:duration="5000"
     android:transitionOrdering="together">
 
-    <fade android:fadingMode="fade_out" android:interpolator="@android:interpolator/decelerate_cubic" />
+    <!--fade android:fadingMode="fade_out" android:interpolator="@android:interpolator/decelerate_cubic" /-->
+    <fade />
 </transitionSet>

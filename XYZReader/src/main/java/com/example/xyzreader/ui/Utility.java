@@ -1,9 +1,7 @@
 package com.example.xyzreader.ui;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.database.Cursor;
-import android.net.Uri;
 import android.os.Build;
 import android.text.format.DateUtils;
 import android.util.Log;
@@ -13,11 +11,11 @@ import com.example.xyzreader.R;
 import com.example.xyzreader.data.ArticleLoader;
 
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Map;
 
 /**
  * Created by 9mat on 9/5/2016.
+ * Helper functions
  */
 public final class Utility {
 
@@ -85,5 +83,17 @@ public final class Utility {
             super(cursor);
             body = cursor.getString(ArticleLoader.Query.BODY);
         }
+    }
+
+    public static String makeTransitionName(long id, String suffix) {
+        return "transition_" + String.valueOf(id) + "_" + suffix;
+    }
+
+    public static String makeTransitionName(long id){
+        return "transition_" + String.valueOf(id);
+    }
+
+    public static String makeTransitionName(String str, String suffix){
+        return str + "_" + suffix;
     }
 }

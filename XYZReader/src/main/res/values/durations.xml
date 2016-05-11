@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <integer name="detail_title_alpha_animation_duration">1000</integer>
+    <integer name="detail_expanding_appbar_duration">100</integer>
+    <integer name="list_item_scroll_duration">100</integer>
+</resources>

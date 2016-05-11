@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <transitionSet
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:duration="800"
     android:transitionOrdering="together">
 
     <slide android:slideEdge="bottom">
@@ -10,5 +9,11 @@
         </targets>
     </slide>
 
-    <fade android:fadingMode="fade_in_out" />
+    <fade android:fadingMode="fade_in" android:startDelay="1000">
+        <targets>
+            <target android:targetId="@+id/detail_collapsing_toolbar" />
+            <target android:targetId="@+id/appbar_detail" />
+            <target android:targetId="@+id/meta_bar" />
+        </targets>
+    </fade>
 </transitionSet>

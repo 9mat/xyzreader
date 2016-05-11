@@ -9,6 +9,7 @@ import android.content.Loader;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Parcelable;
 import android.support.v13.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
@@ -89,22 +90,24 @@ public class ArticleDetailActivity extends AppCompatActivity
     public void onBackPressed() {
         mCurrentDetailsFragment.expandAppBar();
         final ArticleDetailActivity activity = this;
-        new Handler().post(new Runnable() {
+        new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
+                mCurrentDetailsFragment.setUserVisibleHint(false);
                 activity.finishAfterTransition();
             }
-        });
+        }, getResources().getInteger(R.integer.detail_expanding_appbar_duration));
     }
 
     @Override
     public void onEnterAnimationComplete() {
-        AlphaAnimation alphaAnimation = new AlphaAnimation(0.0f, 1.f);
-        alphaAnimation.setDuration(700);
-        alphaAnimation.setFillAfter(true);
-        Log.i("ddd", String.valueOf(mCurrentDetailsFragment.getTitleView().getVisibility()));
-        mCurrentDetailsFragment.getTitleView().setVisibility(View.VISIBLE);
-        mCurrentDetailsFragment.getTitleView().startAnimation(alphaAnimation);
+        if(mCurrentDetailsFragment != null) {
+            View view = mCurrentDetailsFragment.getTitleView();
+            view.setAlpha(0f);
+            view.animate()
+                    .setDuration(getResources().getInteger(R.integer.detail_title_alpha_animation_duration))
+                    .alpha(1f);
+        }
         super.onEnterAnimationComplete();
     }
 
@@ -112,13 +115,11 @@ public class ArticleDetailActivity extends AppCompatActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (Utility.POST_LOLLIPOP) {
-            getWindow().getDecorView().setSystemUiVisibility(
-                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
-                            View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+//            getWindow().getDecorView().setSystemUiVisibility(
+//                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
             postponeEnterTransition();
             setContentView(R.layout.activity_article_detail);
             setEnterSharedElementCallback(mCallback);
-
         } else {
             setContentView(R.layout.activity_article_detail);
         }
@@ -142,7 +143,7 @@ public class ArticleDetailActivity extends AppCompatActivity
                 if (mCursor != null) {
                     mCursor.moveToPosition(position);
                     mSelectedItemId = mCursor.getLong(ArticleLoader.Query._ID);
-                    mCurrentDetailsFragment.paintGradientBackground();
+                    if(mCurrentDetailsFragment != null) mCurrentDetailsFragment.paintGradientBackground();
                     updateStatusBarColor();
                 }
                 mCurrentPosition = position;
@@ -214,11 +215,11 @@ public class ArticleDetailActivity extends AppCompatActivity
     public void updateStatusBarColor() {
         if (Utility.hasArticleColor(mSelectedItemId)) {
             getWindow().setStatusBarColor(Utility.getArticleColor(mSelectedItemId));
-            if(mCurrentDetailsFragment != null) mCurrentDetailsFragment.paintGradientBackground();
         }
     }
 
     private class MyPagerAdapter extends FragmentStatePagerAdapter {
+
         public MyPagerAdapter(FragmentManager fm) {
             super(fm);
         }
@@ -235,7 +236,6 @@ public class ArticleDetailActivity extends AppCompatActivity
             mCursor.moveToPosition(position);
             return ArticleDetailFragment.newInstance(mCursor.getLong(ArticleLoader.Query._ID), position, mStartingPosition);
         }
-
 
         @Override
         public int getCount() {

@@ -11,8 +11,6 @@ import android.content.IntentFilter;
 import android.content.Loader;
 import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.widget.SwipeRefreshLayout;
@@ -57,10 +55,6 @@ public class ArticleListActivity extends AppCompatActivity implements
     private boolean mIsDetailsActivityStarted;
     private static Map<Integer, String> sTransitionNameMap = new HashMap<>();
 
-    public static String generateTransitionName(long position){
-        return "transition_" + String.valueOf(position);
-    }
-
     private final SharedElementCallback mCallback = new SharedElementCallback() {
         @Override
         public void onMapSharedElements(List<String> names, Map<String, View> sharedElements) {
@@ -78,7 +72,7 @@ public class ArticleListActivity extends AppCompatActivity implements
                             mRecyclerView.findViewWithTag(newTransitionName),
 //                            mRecyclerView.findViewWithTag(newTransitionName + "_title"),
 //                            mRecyclerView.findViewWithTag(newTransitionName + "_author_date"),
-                            mRecyclerView.findViewWithTag(newTransitionName + "_container"),
+                            mRecyclerView.findViewWithTag(Utility.makeTransitionName(newTransitionName, "container")),
                             findViewById(android.R.id.statusBarBackground),
                             findViewById(android.R.id.navigationBarBackground)
                     } ;
@@ -132,13 +126,16 @@ public class ArticleListActivity extends AppCompatActivity implements
         setExitSharedElementCallback(mCallback);
 
         mSwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
+        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                refresh();
+            }
+        });
 
         mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
         getLoaderManager().initLoader(0, null, this);
 
-
-//        getWindow().setExitTransition(null);
-//        getWindow().setEnterTransition(null);
 
         if (savedInstanceState == null) {
             refresh();
@@ -265,34 +262,14 @@ public class ArticleListActivity extends AppCompatActivity implements
                                 vh.getShareElementPairs()).toBundle() :
                             null;
 
-                    new Handler().post(new Runnable() {
+                    new Handler().postDelayed(new Runnable() {
                         @Override
                         public void run() {
                             Intent intent = new Intent(Intent.ACTION_VIEW, ItemsContract.Items.buildItemUri(getItemId(vh.getAdapterPosition())));
                             intent.putExtra(EXTRA_STARTING_POSITION, mPosition);
                             startActivity(intent, bundle);
                         }
-                    });
-
-//                    new AsyncTask<Void, Void, Void>() {
-//                        @Override
-//                        protected Void doInBackground(Void... params) {
-//                            try {
-//                                Thread.sleep(700);
-//                            } catch (InterruptedException e) {
-//                                e.printStackTrace();
-//                            }
-//                            return null;
-//                        }
-//
-//                        @Override
-//                        protected void onPostExecute(Void aVoid) {
-//                            Intent intent = new Intent(Intent.ACTION_VIEW, ItemsContract.Items.buildItemUri(getItemId(vh.getAdapterPosition())));
-//                            intent.putExtra(EXTRA_STARTING_POSITION, mPosition);
-//                            startActivity(intent, bundle);
-//                        }
-//
-//                    }.execute();
+                    }, getResources().getInteger(R.integer.list_item_scroll_duration));
                 }
 
             });
@@ -307,7 +284,7 @@ public class ArticleListActivity extends AppCompatActivity implements
             Utility.ArticleInfoSimple articleInfo = new Utility.ArticleInfoSimple(mCursor);
             holder.bindViews(articleInfo);
 
-            sTransitionNameMap.put(position, ArticleListActivity.generateTransitionName(articleInfo.id));
+            sTransitionNameMap.put(position, Utility.makeTransitionName(articleInfo.id));
         }
 
 
@@ -375,8 +352,8 @@ public class ArticleListActivity extends AppCompatActivity implements
             thumbnailView.setAspectRatio(1.5f);
 
             if(Utility.POST_LOLLIPOP){
-                String transitionName = generateTransitionName(articleInfo.id);
-                String transitionNameContainer = transitionName + "_container";
+                String transitionName = Utility.makeTransitionName(articleInfo.id);
+                String transitionNameContainer = Utility.makeTransitionName(articleInfo.id, "container");
 
                 thumbnailView.setTransitionName(transitionName);
                 thumbnailView.setTag(transitionName);
@@ -391,7 +368,7 @@ public class ArticleListActivity extends AppCompatActivity implements
                 int color = Utility.getArticleColor(id);
                 titleView.setBackgroundColor(color);
                 subtitleView.setBackgroundColor(color);
-                mCardView.setBackgroundColor(color);
+//                mCardView.setBackgroundColor(color);
             }
         }
 
